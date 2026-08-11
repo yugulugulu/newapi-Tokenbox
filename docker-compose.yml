@@ -1,47 +1,42 @@
 # New-API Docker Compose Configuration
 # 
 # Quick Start:
-#   1. docker-compose up -d
-#   2. Access at http://localhost:3000
+#   1. Configure all required variables in .env
+#   2. docker compose pull
+#   3. docker compose up -d
+#   4. Access at http://localhost:3000 through the host reverse proxy
 #
-# Using MySQL instead of PostgreSQL:
-#   1. Comment out the postgres service and SQL_DSN line 15
-#   2. Uncomment the mysql service and SQL_DSN line 16
-#   3. Uncomment mysql in depends_on (line 28)
-#   4. Uncomment mysql_data in volumes section (line 64)
-#
-# ⚠️  IMPORTANT: Change all default passwords before deploying to production!
-
-version: '3.4' # For compatibility with older Docker versions
+# To use MySQL instead of PostgreSQL, switch SQL_DSN, depends_on, service,
+# and volume definitions together. Do not enable both database backends.
 
 services:
   new-api:
-    image: calciumion/new-api:latest
+    image: ghcr.io/yugulugulu/newapi-tokenbox@sha256:6860198f5f38c8b1e9cbc9ff38182a1317b4864d00da89c6235d92ef5b44230a
     container_name: new-api
     restart: always
     command: --log-dir /app/logs
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000" # 绑定到 127.0.0.1 以限制外部访问
     volumes:
       - ./data:/data
       - ./logs:/app/logs
     environment:
-      - SQL_DSN=postgresql://root:123456@postgres:5432/new-api # ⚠️ IMPORTANT: Change the password in production!
-#      - SQL_DSN=root:123456@tcp(mysql:3306)/new-api  # Point to the mysql service, uncomment if using MySQL
-#      - LOG_SQL_DSN=postgresql://root:123456@postgres:5432/new-api-log # OPTIONAL: If you want a separate database for logging, uncomment and set this
-#      - LOG_SQL_DSN=clickhouse://default:123456@clickhouse:9000/new_api_logs # OPTIONAL: Use ClickHouse for logs only; also uncomment clickhouse in depends_on and the clickhouse service below
+      - SQL_DSN=postgresql://root:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/new-api
+#      - SQL_DSN=root:${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}@tcp(mysql:3306)/new-api  # Use with the mysql service
+#      - LOG_SQL_DSN=postgresql://root:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/new-api-log # OPTIONAL: Separate log database on PostgreSQL
+#      - LOG_SQL_DSN=clickhouse://default:${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD is required}@clickhouse:9000/new_api_logs # OPTIONAL: Use ClickHouse for logs
 #      - LOG_SQL_CLICKHOUSE_TTL_DAYS=0 # OPTIONAL: ClickHouse log retention days. Unset or 0 disables automatic deletion; set to e.g. 30 to keep 30 days
-      - REDIS_CONN_STRING=redis://:123456@redis:6379 # ⚠️ IMPORTANT: Change the password in production!
+      - REDIS_CONN_STRING=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379
       - TZ=Asia/Shanghai
       - ERROR_LOG_ENABLED=true # 是否启用错误日志记录 (Whether to enable error log recording)
       - BATCH_UPDATE_ENABLED=true  # 是否启用批量更新 (Whether to enable batch update)
       - NODE_NAME=new-api-node-1  # 节点名称，用于审计日志中标识节点身份；多节点/容器部署时建议设置 (Node name used in audit logs; recommended when running multiple instances or in containers)
 #      - STREAMING_TIMEOUT=300  # 流模式无响应超时时间，单位秒，默认120秒，如果出现空补全可以尝试改为更大值 （Streaming timeout in seconds, default is 120s. Increase if experiencing empty completions）
 #      - RELAY_IDLE_CONN_TIMEOUT=90  # Relay HTTP 客户端空闲连接超时时间，单位秒，默认跟随 Go 标准库，设置为0表示不限制 (Relay HTTP client idle keep-alive timeout in seconds, defaults to Go standard library; set 0 to disable)
-#      - SESSION_SECRET=random_string  # 多机部署时设置，必须修改这个随机字符串！！ （multi-node deployment, set this to a random string!!!!!!!）
-#      - SESSION_COOKIE_SECURE=true  # true：启用 Secure Refresh Cookie 和严格 refresh/logout OriginGuard；false/未配置：关闭 OriginGuard，仅用于本地 HTTP (true: Secure cookie + strict refresh/logout OriginGuard; false/unset: guard disabled for local HTTP only)
-#      - SESSION_COOKIE_TRUSTED_URL=https://example.com,https://admin.example.com  # Secure=true 时必填的精确 HTTPS Origin；不是 relay CORS 白名单，不支持通配符/路径 (Required exact HTTPS origins when Secure=true; not a relay CORS allowlist, no wildcard/path)
-#      - TRUSTED_PROXIES=172.20.0.0/16  # 未配置时信任回环/RFC1918/fc00::/7 并告警，none 为严格模式，显式列表替代默认值 (Unset trusts loopback/RFC 1918/fc00::/7 with a warning; none trusts no proxies; an explicit list replaces defaults)
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required}  # 多机部署时所有节点必须保持一致 (Must be identical across all nodes)
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:?SESSION_COOKIE_SECURE is required}  # true：启用 Secure Refresh Cookie 和严格 refresh/logout OriginGuard
+      - SESSION_COOKIE_TRUSTED_URL=${SESSION_COOKIE_TRUSTED_URL:?SESSION_COOKIE_TRUSTED_URL is required} # Secure=true 时必填的精确 HTTPS Origin
+      - TRUSTED_PROXIES=${TRUSTED_PROXIES:?TRUSTED_PROXIES is required}  # 应填写实际反向代理地址/IP 段 (Use the actual reverse proxy IP/CIDR)
 #      - USER_SESSION_ACTIVE_LIMIT=50
 #      - USER_SESSION_ISSUANCE_LIMIT=100
 #      - USER_SESSION_ISSUANCE_WINDOW_SECONDS=86400  # 不得大于 revoked 保留期 (must not exceed revoked retention)
@@ -53,10 +48,14 @@ services:
 #      - UMAMI_SCRIPT_URL=https://analytics.umami.is/script.js  # Umami 脚本 URL，默认为官方地址 (Umami Script URL, defaults to official URL)
 
     depends_on:
-      - redis
-      - postgres
-#      - mysql  # Uncomment if using MySQL
-#      - clickhouse  # Uncomment if using ClickHouse for LOG_SQL_DSN
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+#      mysql:
+#        condition: service_healthy
+#      clickhouse:
+#        condition: service_healthy
     networks:
       - new-api-network
     healthcheck:
@@ -66,10 +65,18 @@ services:
       retries: 3
 
   redis:
-    image: redis:latest
+    image: redis:7-alpine
     container_name: redis
     restart: always
-    command: ["redis-server", "--requirepass", "123456"]  # ⚠️ IMPORTANT: Change this password in production!
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
     networks:
       - new-api-network
 
@@ -79,8 +86,14 @@ services:
     restart: always
     environment:
       POSTGRES_USER: root
-      POSTGRES_PASSWORD: 123456  # ⚠️ IMPORTANT: Change this password in production!
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: new-api
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     volumes:
       - pg_data:/var/lib/postgresql/data
     networks:
@@ -93,8 +106,14 @@ services:
 #    container_name: mysql
 #    restart: always
 #    environment:
-#      MYSQL_ROOT_PASSWORD: 123456  # ⚠️ IMPORTANT: Change this password in production!
+#      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
 #      MYSQL_DATABASE: new-api
+#    healthcheck:
+#      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+#      interval: 5s
+#      timeout: 5s
+#      retries: 10
+#      start_period: 15s
 #    volumes:
 #      - mysql_data:/var/lib/mysql
 #    networks:
@@ -109,8 +128,14 @@ services:
 #    environment:
 #      CLICKHOUSE_DB: new_api_logs
 #      CLICKHOUSE_USER: default
-#      CLICKHOUSE_PASSWORD: 123456  # ⚠️ IMPORTANT: Change this password in production!
+#      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD is required}
 #      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+#    healthcheck:
+#      test: ["CMD-SHELL", "clickhouse-client --user \"$${CLICKHOUSE_USER}\" --password \"$${CLICKHOUSE_PASSWORD}\" --query 'SELECT 1'"]
+#      interval: 5s
+#      timeout: 5s
+#      retries: 10
+#      start_period: 15s
 #    volumes:
 #      - clickhouse_data:/var/lib/clickhouse
 #    networks:
@@ -127,3 +152,7 @@ volumes:
 networks:
   new-api-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+          gateway: 172.30.0.1
