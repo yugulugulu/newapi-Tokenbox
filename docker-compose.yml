@@ -11,7 +11,7 @@
 
 services:
   new-api:
-    image: ghcr.io/yugulugulu/newapi-tokenbox@sha256:6860198f5f38c8b1e9cbc9ff38182a1317b4864d00da89c6235d92ef5b44230a
+    image: ${NEW_API_IMAGE:?NEW_API_IMAGE is required}
     container_name: new-api
     restart: always
     command: --log-dir /app/logs
