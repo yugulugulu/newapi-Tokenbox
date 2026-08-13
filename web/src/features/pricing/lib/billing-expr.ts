@@ -237,6 +237,9 @@ export type TierCondition = {
 export type ParsedTier = {
   label: string
   conditions: TierCondition[]
+  /** v2 task pricing metadata (for example per_second video billing). */
+  billing_method?: 'per_second' | 'per_call'
+  unit_price?: number
   [field: string]: unknown
 }
 
@@ -269,6 +272,34 @@ export function parseTiersFromExpr(exprStr: string): ParsedTier[] {
   if (!exprStr) return []
   try {
     const { body } = stripExprVersion(exprStr)
+
+    // Task/video pricing uses charge(method, quantity, price), rather than
+    // token price variables. Parse it here so usage logs and the pricing
+    // preview can show "per second" instead of treating the computed amount
+    // as a legacy per-call model_price.
+    if (body.includes('charge(')) {
+      const taskTierRe = new RegExp(
+        String.raw`(?:(param\("resolution"\)\s*==\s*("(?:\\.|[^"\\])*")\s*\?\s*)?tier\("((?:\\.|[^"\\])*)",\s*charge\("(per_second|per_call)",\s*quantity,\s*([0-9]+(?:\.[0-9]+)?)\))`,
+        'g'
+      )
+      const taskTiers: ParsedTier[] = []
+      let taskMatch
+      while ((taskMatch = taskTierRe.exec(body)) !== null) {
+        const hasResolution = Boolean(taskMatch[1])
+        const tier: ParsedTier = {
+          label: JSON.parse(`"${taskMatch[3]}"`) as string,
+          conditions: [],
+          billing_method: taskMatch[4] as ParsedTier['billing_method'],
+          unit_price: Number(taskMatch[5]),
+        }
+        if (hasResolution) {
+          tier.resolution = JSON.parse(taskMatch[2]) as string
+        }
+        taskTiers.push(tier)
+      }
+      if (taskTiers.length > 0) return taskTiers
+    }
+
     const condGroup =
       `((?:(?:p|c|len)\\s*(?:<|<=|>|>=)\\s*[\\d.eE+]+)` +
       `(?:\\s*&&\\s*(?:p|c|len)\\s*(?:<|<=|>|>=)\\s*[\\d.eE+]+)*)`

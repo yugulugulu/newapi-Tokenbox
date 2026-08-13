@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -474,6 +475,71 @@ func RelayNotFound(c *gin.Context) {
 	})
 }
 
+type taskResponseBuffer struct {
+	gin.ResponseWriter
+	header  http.Header
+	body    bytes.Buffer
+	status  int
+	written bool
+}
+
+func newTaskResponseBuffer(writer gin.ResponseWriter) *taskResponseBuffer {
+	header := make(http.Header, len(writer.Header()))
+	for key, values := range writer.Header() {
+		header[key] = append([]string(nil), values...)
+	}
+	return &taskResponseBuffer{
+		ResponseWriter: writer,
+		header:         header,
+		status:         http.StatusOK,
+	}
+}
+
+func (w *taskResponseBuffer) Header() http.Header {
+	return w.header
+}
+
+func (w *taskResponseBuffer) WriteHeader(statusCode int) {
+	if w.written {
+		return
+	}
+	w.status = statusCode
+}
+
+func (w *taskResponseBuffer) Write(data []byte) (int, error) {
+	if !w.written {
+		w.written = true
+	}
+	return w.body.Write(data)
+}
+
+func (w *taskResponseBuffer) WriteString(value string) (int, error) {
+	return w.Write([]byte(value))
+}
+
+func (w *taskResponseBuffer) WriteHeaderNow() {
+	if !w.written {
+		w.written = true
+	}
+}
+
+func (w *taskResponseBuffer) Status() int   { return w.status }
+func (w *taskResponseBuffer) Size() int     { return w.body.Len() }
+func (w *taskResponseBuffer) Written() bool { return w.written }
+
+func commitTaskResponse(c *gin.Context, buffered *taskResponseBuffer) {
+	if buffered == nil {
+		return
+	}
+	for key, values := range buffered.header {
+		c.Writer.Header()[key] = append([]string(nil), values...)
+	}
+	if buffered.written {
+		c.Writer.WriteHeader(buffered.status)
+		_, _ = c.Writer.Write(buffered.body.Bytes())
+	}
+}
+
 func RelayTaskFetch(c *gin.Context) {
 	relayInfo, err := relaycommon.GenRelayInfo(c, types.RelayFormatTask, nil, nil)
 	if err != nil {
@@ -507,6 +573,7 @@ func RelayTask(c *gin.Context) {
 
 	var result *relay.TaskSubmitResult
 	var taskErr *taskdto.TaskError
+	var submittedResponse *taskResponseBuffer
 	defer func() {
 		if taskErr != nil && relayInfo.Billing != nil {
 			relayInfo.Billing.Refund(c)
@@ -543,6 +610,13 @@ func RelayTask(c *gin.Context) {
 		}
 
 		addUsedChannel(c, channel.Id)
+		// Task retries may switch auto-groups. Refresh only the captured
+		// group's multiplier and reservation; the v2 expression and request
+		// quantity remain frozen from the first attempt.
+		if billingErr := service.PrepareTieredBillingForSelectedGroup(c, relayInfo); billingErr != nil {
+			taskErr = service.TaskErrorWrapperLocal(billingErr.Err, string(billingErr.GetErrorCode()), billingErr.StatusCode)
+			break
+		}
 		bodyStorage, bodyErr := common.GetBodyStorage(c)
 		if bodyErr != nil {
 			if common.IsRequestBodyTooLargeError(bodyErr) || errors.Is(bodyErr, common.ErrRequestBodyTooLarge) {
@@ -554,8 +628,12 @@ func RelayTask(c *gin.Context) {
 		}
 		c.Request.Body = io.NopCloser(bodyStorage)
 
+		bufferedResponse := newTaskResponseBuffer(c.Writer)
+		c.Writer = bufferedResponse
 		result, taskErr = relay.RelayTaskSubmit(c, relayInfo)
+		c.Writer = bufferedResponse.ResponseWriter
 		if taskErr == nil {
+			submittedResponse = bufferedResponse
 			break
 		}
 
@@ -577,20 +655,18 @@ func RelayTask(c *gin.Context) {
 		logger.LogInfo(c, retryLogStr)
 	}
 
-	// ── 成功：结算 + 日志 + 插入任务 ──
+	// ── 成功：先落库任务，再结算并提交响应 ──
+	// The upstream task ID is not usable until the local task record exists. Keep
+	// the adapter response buffered so an insert failure cannot return a task ID
+	// that the polling endpoint can never resolve.
 	if taskErr == nil {
-		if settleErr := service.SettleBilling(c, relayInfo, result.Quota); settleErr != nil {
-			common.SysError("settle task billing error: " + settleErr.Error())
-		}
-		service.LogTaskConsumption(c, relayInfo)
-
 		task := model.InitTask(result.Platform, relayInfo)
 		task.PrivateData.UpstreamTaskID = result.UpstreamTaskID
 		task.PrivateData.BillingSource = relayInfo.BillingSource
 		task.PrivateData.SubscriptionId = relayInfo.SubscriptionId
 		task.PrivateData.TokenId = relayInfo.TokenId
 		task.PrivateData.NodeName = common.NodeName
-		task.PrivateData.BillingContext = &model.TaskBillingContext{
+		billingContext := &model.TaskBillingContext{
 			ModelPrice:      relayInfo.PriceData.ModelPrice,
 			GroupRatio:      relayInfo.PriceData.GroupRatioInfo.GroupRatio,
 			ModelRatio:      relayInfo.PriceData.ModelRatio,
@@ -598,11 +674,36 @@ func RelayTask(c *gin.Context) {
 			OriginModelName: relayInfo.OriginModelName,
 			PerCallBilling:  common.StringsContains(constant.TaskPricePatches, relayInfo.OriginModelName) || relayInfo.PriceData.UsePrice,
 		}
+		if snapshot := relayInfo.TieredBillingSnapshot; snapshot != nil && snapshot.ExprVersion == 2 {
+			billingContext.BillingMode = snapshot.BillingMode
+			billingContext.BillingExpr = snapshot.ExprString
+			billingContext.ExprHash = snapshot.ExprHash
+			billingContext.ExprVersion = snapshot.ExprVersion
+			billingContext.BillingMethod = snapshot.BillingMethod
+			billingContext.Resolution = snapshot.Resolution
+			billingContext.Quantity = snapshot.Quantity
+			billingContext.EstimatedTier = snapshot.EstimatedTier
+			billingContext.TaskCount = snapshot.TaskCount
+			if billingContext.TaskCount <= 0 {
+				billingContext.TaskCount = 1
+			}
+			billingContext.PerCallBilling = snapshot.BillingMethod == "per_call"
+			// v2 pricing is self-contained; never persist legacy Sora ratios.
+			billingContext.OtherRatios = nil
+		}
+		task.PrivateData.BillingContext = billingContext
 		task.Quota = result.Quota
 		task.Data = result.TaskData
 		task.Action = relayInfo.Action
 		if insertErr := task.Insert(); insertErr != nil {
 			common.SysError("insert task error: " + insertErr.Error())
+			taskErr = service.TaskErrorWrapper(insertErr, "insert_task_failed", http.StatusInternalServerError)
+		} else {
+			if settleErr := service.SettleBilling(c, relayInfo, result.Quota); settleErr != nil {
+				common.SysError("settle task billing error: " + settleErr.Error())
+			}
+			service.LogTaskConsumption(c, relayInfo)
+			commitTaskResponse(c, submittedResponse)
 		}
 	}
 

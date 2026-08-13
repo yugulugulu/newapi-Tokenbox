@@ -16,24 +16,26 @@ type RequestInput struct {
 // Fields beyond P and C are optional — when absent they default to 0,
 // which means cache-unaware expressions keep working unchanged.
 type TokenParams struct {
-	P    float64 // prompt tokens (text) — auto-excludes sub-categories priced separately
-	C    float64 // completion tokens (text) — auto-excludes sub-categories priced separately
-	Len  float64 // total input context length for tier conditions (non-Claude: raw prompt_tokens; Claude: text + cache read + cache creation)
-	CR   float64 // cache read (hit) tokens
-	CC   float64 // cache creation tokens (5-min TTL for Claude, generic for others)
-	CC1h float64 // cache creation tokens — 1-hour TTL (Claude only)
-	Img  float64 // image input tokens
-	ImgO float64 // image output tokens
-	AI   float64 // audio input tokens
-	AO   float64 // audio output tokens
+	P        float64 // prompt tokens (text) — auto-excludes sub-categories priced separately
+	C        float64 // completion tokens (text) — auto-excludes sub-categories priced separately
+	Len      float64 // total input context length for tier conditions (non-Claude: raw prompt_tokens; Claude: text + cache read + cache creation)
+	CR       float64 // cache read (hit) tokens
+	CC       float64 // cache creation tokens (5-min TTL for Claude, generic for others)
+	CC1h     float64 // cache creation tokens — 1-hour TTL (Claude only)
+	Img      float64 // image input tokens
+	ImgO     float64 // image output tokens
+	AI       float64 // audio input tokens
+	AO       float64 // audio output tokens
+	Quantity float64 // normalized task quantity (v2 video expressions)
 }
 
 // TraceResult holds side-channel info captured by the tier() function
 // during Expr execution. This replaces the old Breakdown mechanism —
 // the Expr itself is the single source of truth for billing logic.
 type TraceResult struct {
-	MatchedTier string  `json:"matched_tier"`
-	Cost        float64 `json:"cost"`
+	MatchedTier   string  `json:"matched_tier"`
+	Cost          float64 `json:"cost"`
+	BillingMethod string  `json:"billing_method,omitempty"`
 }
 
 // BillingSnapshot captures billing state at pre-consume time. Expression and
@@ -53,6 +55,10 @@ type BillingSnapshot struct {
 	EstimatedTier             string  `json:"estimated_tier"`
 	QuotaPerUnit              float64 `json:"quota_per_unit"`
 	ExprVersion               int     `json:"expr_version"`
+	BillingMethod             string  `json:"billing_method,omitempty"`
+	Resolution                string  `json:"resolution,omitempty"`
+	Quantity                  float64 `json:"quantity,omitempty"`
+	TaskCount                 int     `json:"task_count"`
 }
 
 // TieredResult holds everything needed after running tiered settlement.

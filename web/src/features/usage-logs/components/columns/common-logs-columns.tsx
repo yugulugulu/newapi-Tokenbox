@@ -163,6 +163,24 @@ function buildTypeDetailSegments(
   const tieredSummary = getTieredBillingSummary(other)
   if (isTieredExpr) {
     if (tieredSummary) {
+      if (
+        tieredSummary.billingMethod === 'per_second' ||
+        tieredSummary.billingMethod === 'per_call'
+      ) {
+        const unit =
+          tieredSummary.billingMethod === 'per_second'
+            ? t('Per second')
+            : t('Per-call')
+        const unitPrice =
+          tieredSummary.unitPrice != null
+            ? formatBillingCurrencyFromUSD(tieredSummary.unitPrice, priceOpts)
+            : '-'
+        const quantity =
+          tieredSummary.quantity != null ? ` × ${tieredSummary.quantity}` : ''
+        segments.push({
+          text: `${t('Dynamic Pricing')} · ${unit} ${unitPrice}${quantity}`,
+        })
+      }
       const baseEntries = tieredSummary.priceEntries
         .filter((entry) => ['inputPrice', 'outputPrice'].includes(entry.field))
         .map((entry) => formatPriceCompact(entry.price))

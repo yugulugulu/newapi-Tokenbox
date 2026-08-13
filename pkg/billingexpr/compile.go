@@ -20,10 +20,26 @@ const DefaultExprVersion = 1
 // Format: "v1:tier(...)" → version=1, body="tier(...)".
 // No prefix defaults to DefaultExprVersion.
 func ParseExprVersion(exprStr string) (version int, body string) {
+	if strings.HasPrefix(exprStr, "v2:") {
+		return 2, exprStr[3:]
+	}
 	if strings.HasPrefix(exprStr, "v1:") {
 		return 1, exprStr[3:]
 	}
 	return DefaultExprVersion, exprStr
+}
+
+// IsV2VideoExpr identifies the Seedance-style v2 task expression shape. It is
+// deliberately stricter than a version check so unrelated v2 expressions do
+// not enter the video request path and accidentally change their billing.
+func IsV2VideoExpr(exprStr string) bool {
+	version, body := ParseExprVersion(exprStr)
+	if version != 2 {
+		return false
+	}
+	return strings.Contains(body, "quantity") &&
+		strings.Contains(body, "charge(") &&
+		strings.Contains(body, `param("resolution")`)
 }
 
 type cachedEntry struct {
@@ -65,8 +81,22 @@ var compileEnvPrototypeV1 = map[string]interface{}{
 	"floor":   math.Floor,
 }
 
+// compileEnvPrototypeV2 keeps the v1 token environment for compatibility and
+// adds the request-duration semantics used by video pricing expressions.
+var compileEnvPrototypeV2 = func() map[string]interface{} {
+	env := make(map[string]interface{}, len(compileEnvPrototypeV1)+2)
+	for key, value := range compileEnvPrototypeV1 {
+		env[key] = value
+	}
+	env["quantity"] = float64(0)
+	env["charge"] = func(string, float64, float64) (float64, error) { return 0, nil }
+	return env
+}()
+
 func getCompileEnv(version int) map[string]interface{} {
 	switch version {
+	case 2:
+		return compileEnvPrototypeV2
 	default:
 		return compileEnvPrototypeV1
 	}

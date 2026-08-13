@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // ---------------------------------------------------------------------------
@@ -1007,5 +1009,33 @@ func BenchmarkExprRunCached(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		billingexpr.RunExpr(benchComplexExpr, params)
+	}
+}
+
+func TestV2VideoCharge(t *testing.T) {
+	expr := `v2:param("resolution") == "480p" ? tier("480p", charge("per_second", quantity, 0.32)) : tier("fallback", charge("per_call", quantity, 0.47))`
+	cost, trace, err := billingexpr.RunExprWithRequest(expr, billingexpr.TokenParams{Quantity: 5}, billingexpr.RequestInput{Body: []byte(`{"resolution":"480p"}`)})
+	require.NoError(t, err)
+	assert.Equal(t, 1.6, cost)
+	assert.Equal(t, "480p", trace.MatchedTier)
+	assert.Equal(t, "per_second", trace.BillingMethod)
+
+	cost, trace, err = billingexpr.RunExprWithRequest(expr, billingexpr.TokenParams{Quantity: 5}, billingexpr.RequestInput{Body: []byte(`{"resolution":" 720p "}`)})
+	require.NoError(t, err)
+	assert.Equal(t, 0.47, cost)
+	assert.Equal(t, "fallback", trace.MatchedTier)
+	assert.Equal(t, "per_call", trace.BillingMethod)
+}
+
+func TestV2RejectsInvalidCharge(t *testing.T) {
+	for _, expression := range []string{
+		`v2:charge("per_second", quantity, -1)`,
+		`v2:charge("bad", quantity, 1)`,
+		`v2:-charge("per_call", quantity, 1)`,
+	} {
+		t.Run(expression, func(t *testing.T) {
+			_, _, err := billingexpr.RunExpr(expression, billingexpr.TokenParams{Quantity: 5})
+			require.Error(t, err)
+		})
 	}
 }

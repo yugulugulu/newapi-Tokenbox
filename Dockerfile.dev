@@ -11,7 +11,11 @@ ENV GOEXPERIMENT=greenteagc
 
 WORKDIR /build
 
+# `go.mod` replaces relaykit with a local module, so its module manifest must
+# exist before dependency resolution. Keeping these copies before `COPY . .`
+# preserves the Go-module download cache for normal source-only edits.
 ADD go.mod go.sum ./
+ADD relaykit/go.mod relaykit/go.sum ./relaykit/
 RUN go mod download
 
 COPY . .

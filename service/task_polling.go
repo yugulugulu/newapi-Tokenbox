@@ -16,6 +16,7 @@ import (
 	taskdto "github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	"github.com/QuantumNous/new-api/relay/channel/task/taskcommon"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
@@ -641,6 +642,35 @@ func truncateBase64(s string) string {
 //  2. taskResult.TotalTokens > 0 → 按 token 重算
 //  3. 都不满足 → 保持预扣额度不变
 func settleTaskBillingOnComplete(ctx context.Context, adaptor TaskPollingAdaptor, task *model.Task, taskResult *relaycommon.TaskInfo) {
+	if bc := task.PrivateData.BillingContext; bc != nil && bc.BillingMode == "tiered_expr" && bc.ExprVersion == 2 {
+		if bc.BillingMethod == "per_call" {
+			logger.LogInfo(ctx, fmt.Sprintf("任务 %s Seedance v2 按次计费，跳过差额结算", task.TaskID))
+			return
+		}
+		if bc.BillingMethod == "per_second" {
+			requestBody, err := common.Marshal(struct {
+				Resolution string `json:"resolution,omitempty"`
+			}{Resolution: bc.Resolution})
+			if err != nil {
+				logger.LogError(ctx, fmt.Sprintf("任务 %s Seedance v2 计费请求快照序列化失败: %s", task.TaskID, err.Error()))
+				return
+			}
+			snapshot := &billingexpr.BillingSnapshot{
+				BillingMode: bc.BillingMode, ModelName: bc.OriginModelName, ExprString: bc.BillingExpr,
+				ExprHash: bc.ExprHash, GroupRatio: bc.GroupRatio, QuotaPerUnit: common.QuotaPerUnit,
+				ExprVersion: bc.ExprVersion, BillingMethod: bc.BillingMethod, Resolution: bc.Resolution,
+				Quantity: bc.Quantity, EstimatedTier: bc.EstimatedTier,
+			}
+			result, err := billingexpr.ComputeTieredQuotaWithRequest(snapshot, billingexpr.TokenParams{Quantity: bc.Quantity}, billingexpr.RequestInput{Body: requestBody})
+			if err != nil {
+				logger.LogError(ctx, fmt.Sprintf("任务 %s Seedance v2 结算失败: %s", task.TaskID, err.Error()))
+				return
+			}
+			RecalculateTaskQuota(ctx, task, result.ActualQuotaAfterGroup, "Seedance v2 按秒结算", result.Clamp)
+			return
+		}
+	}
+
 	// 0. 按次计费的任务不做差额结算
 	if bc := task.PrivateData.BillingContext; bc != nil && bc.PerCallBilling {
 		logger.LogInfo(ctx, fmt.Sprintf("任务 %s 按次计费，跳过差额结算", task.TaskID))

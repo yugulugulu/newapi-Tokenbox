@@ -88,15 +88,21 @@ import {
   type CacheMode,
   type ExtraTokenValues,
   type TierConditionInput,
+  type SeedanceConfig,
+  type SeedanceTier,
   type VisualConfig,
   type VisualTier,
+  createDefaultSeedanceConfig,
   createDefaultVisualConfig,
   evalExprLocally,
   exprUsesExtraVars,
   generateExprFromVisualConfig,
+  generateSeedanceExpr,
   getTierCacheMode,
+  normalizeSeedanceConfig,
   normalizeVisualConfig,
   normalizeVisualTier,
+  tryParseSeedanceExpr,
   tryParseVisualConfig,
 } from '@/features/pricing/lib/tier-expr'
 import { cn } from '@/lib/utils'
@@ -151,6 +157,11 @@ const PRESET_GROUPS: PresetGroup[] = [
   {
     group: 'Tiered',
     presets: [
+      {
+        key: 'seedance-2.0',
+        label: 'Seedance 2.0',
+        expr: 'v2:param("resolution") == "480p" ? tier("480p", charge("per_second", quantity, 0.32)) : param("resolution") == "720p" ? tier("720p", charge("per_call", quantity, 0.47)) : tier("fallback", charge("per_second", quantity, 0.55))',
+      },
       {
         key: 'claude-sonnet',
         label: 'Claude Sonnet 4.5',
@@ -1618,6 +1629,174 @@ function LlmPromptHelper({ modelName }: LlmPromptHelperProps) {
 }
 
 // ---------------------------------------------------------------------------
+// Seedance 2.0 video editor
+// ---------------------------------------------------------------------------
+
+type SeedanceEditorProps = {
+  config: SeedanceConfig | null
+  onChange: (next: SeedanceConfig) => void
+}
+
+function SeedanceEditor({ config, onChange }: SeedanceEditorProps) {
+  const { t } = useTranslation()
+  const normalized = useMemo(() => normalizeSeedanceConfig(config), [config])
+
+  const updateTier = (index: number, patch: Partial<SeedanceTier>) => {
+    onChange({
+      tiers: normalized.tiers.map((tier, tierIndex) =>
+        tierIndex === index ? { ...tier, ...patch } : tier
+      ),
+    })
+  }
+
+  const addTier = () => {
+    const tiers = normalized.tiers.map((tier, index) =>
+      index === normalized.tiers.length - 1
+        ? { ...tier, fallback: false, resolution: '' }
+        : tier
+    )
+    tiers.push({
+      label: `tier_${tiers.length + 1}`,
+      resolution: '',
+      method: 'per_second',
+      price: 0,
+      fallback: true,
+    })
+    onChange({ tiers })
+  }
+
+  const removeTier = (index: number) => {
+    if (
+      normalized.tiers.length === 1 ||
+      index === normalized.tiers.length - 1
+    ) {
+      return
+    }
+    onChange({
+      tiers: normalized.tiers.filter((_, tierIndex) => tierIndex !== index),
+    })
+  }
+
+  return (
+    <div className='space-y-3'>
+      <p className='text-muted-foreground text-xs'>
+        {t(
+          'Match resolution exactly after trimming whitespace. The last tier is always the fallback.'
+        )}
+      </p>
+      {normalized.tiers.map((tier, index) => {
+        const fallback = index === normalized.tiers.length - 1
+        return (
+          <div
+            key={`${tier.label}:${tier.resolution ?? 'fallback'}`}
+            className='space-y-3 rounded-md border p-3'
+          >
+            <div className='flex items-center justify-between gap-2'>
+              <div className='text-sm font-medium'>
+                {tier.label || `${t('Tier')} ${index + 1}`}
+                {fallback && (
+                  <Badge className='ml-2' variant='secondary'>
+                    {t('Fallback')}
+                  </Badge>
+                )}
+              </div>
+              {!fallback && (
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  onClick={() => removeTier(index)}
+                  aria-label={t('Delete tier')}
+                >
+                  <Trash2 className='h-4 w-4' />
+                </Button>
+              )}
+            </div>
+            <div className='grid gap-3 sm:grid-cols-2'>
+              <Field className='gap-2'>
+                <FieldLabel>{t('Tier name')}</FieldLabel>
+                <Input
+                  value={tier.label}
+                  onChange={(event) =>
+                    updateTier(index, { label: event.target.value })
+                  }
+                />
+              </Field>
+              {!fallback && (
+                <Field className='gap-2'>
+                  <FieldLabel>{t('Video resolution')}</FieldLabel>
+                  <Input
+                    value={tier.resolution ?? ''}
+                    onChange={(event) =>
+                      updateTier(index, { resolution: event.target.value })
+                    }
+                    placeholder='480p'
+                  />
+                </Field>
+              )}
+            </div>
+            <div className='grid gap-3 sm:grid-cols-2'>
+              <Field className='gap-2'>
+                <FieldLabel>{t('Billing method')}</FieldLabel>
+                <Select
+                  value={tier.method}
+                  onValueChange={(value) =>
+                    updateTier(index, {
+                      method: value as SeedanceTier['method'],
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value='per_second'>
+                        {t('Per second')}
+                      </SelectItem>
+                      <SelectItem value='per_call'>{t('Per call')}</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field className='gap-2'>
+                <FieldLabel>
+                  {tier.method === 'per_second'
+                    ? t('Price per second')
+                    : t('Price per call')}
+                </FieldLabel>
+                <Input
+                  type='number'
+                  min={0}
+                  step='0.000001'
+                  value={tier.price}
+                  onChange={(event) => {
+                    const value = Number(event.target.value)
+                    updateTier(index, {
+                      price: Number.isFinite(value)
+                        ? Math.round(Math.max(0, value) * 1_000_000) / 1_000_000
+                        : 0,
+                    })
+                  }}
+                />
+              </Field>
+            </div>
+            <p className='text-muted-foreground text-xs'>
+              {tier.method === 'per_second'
+                ? t('Preview: {{price}} per second', { price: tier.price })
+                : t('Preview: {{price}} per call', { price: tier.price })}
+            </p>
+          </div>
+        )
+      })}
+      <Button variant='outline' size='sm' onClick={addTier}>
+        <Plus className='mr-2 h-4 w-4' />
+        {t('Add tier')}
+      </Button>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Main editor
 // ---------------------------------------------------------------------------
 
@@ -1629,7 +1808,7 @@ export type TieredPricingEditorProps = {
   onRequestRuleExprChange: (next: string) => void
 }
 
-type EditorMode = 'visual' | 'raw'
+type EditorMode = 'visual' | 'seedance' | 'raw'
 
 export const TieredPricingEditor = memo(function TieredPricingEditor({
   modelName,
@@ -1639,7 +1818,12 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
   onRequestRuleExprChange,
 }: TieredPricingEditorProps) {
   const { t } = useTranslation()
-  const [editorMode, setEditorMode] = useState<EditorMode>('visual')
+  const [editorMode, setEditorMode] = useState<EditorMode>(() =>
+    tryParseSeedanceExpr(currentExpr) ? 'seedance' : 'visual'
+  )
+  const [seedanceConfig, setSeedanceConfig] = useState<SeedanceConfig | null>(
+    () => tryParseSeedanceExpr(currentExpr)
+  )
   const [visualConfig, setVisualConfig] = useState<VisualConfig | null>(() =>
     tryParseVisualConfig(currentExpr)
   )
@@ -1654,8 +1838,13 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
   useEffect(() => {
     if (initRef.current) return
     initRef.current = true
+    const parsedSeedance = tryParseSeedanceExpr(currentExpr)
     const parsedConfig = tryParseVisualConfig(currentExpr)
-    if (parsedConfig) {
+    if (parsedSeedance) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSeedanceConfig(parsedSeedance)
+      setEditorMode('seedance')
+    } else if (parsedConfig) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisualConfig(parsedConfig)
       setEditorMode('visual')
@@ -1684,9 +1873,12 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
     if (editorMode === 'visual') {
       return generateExprFromVisualConfig(visualConfig)
     }
+    if (editorMode === 'seedance') {
+      return generateSeedanceExpr(seedanceConfig)
+    }
     const { billingExpr } = splitBillingExprAndRequestRules(rawExpr)
     return billingExpr
-  }, [editorMode, visualConfig, rawExpr])
+  }, [editorMode, seedanceConfig, visualConfig, rawExpr])
 
   useEffect(() => {
     if (effectiveExpr !== currentExpr) {
@@ -1711,6 +1903,10 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
     setVisualConfig(next)
   }, [])
 
+  const handleSeedanceChange = useCallback((next: SeedanceConfig) => {
+    setSeedanceConfig(next)
+  }, [])
+
   const handleRawChange = useCallback(
     (value: string) => {
       setRawExpr(value)
@@ -1723,26 +1919,36 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
 
   const handleModeChange = useCallback(
     (next: EditorMode) => {
+      const { billingExpr, requestRuleExpr: ruleStr } =
+        splitBillingExprAndRequestRules(rawExpr)
       if (next === 'visual') {
-        const { billingExpr, requestRuleExpr: ruleStr } =
-          splitBillingExprAndRequestRules(rawExpr)
-        const parsed = tryParseVisualConfig(billingExpr)
-        if (parsed) {
-          setVisualConfig(parsed)
-        } else {
-          setVisualConfig(createDefaultVisualConfig())
-        }
-        const parsedGroups = tryParseRequestRuleExpr(ruleStr)
-        setRequestRuleGroups(parsedGroups || [])
+        setVisualConfig(
+          tryParseVisualConfig(billingExpr) || createDefaultVisualConfig()
+        )
+        setRequestRuleGroups(tryParseRequestRuleExpr(ruleStr) || [])
         onRequestRuleExprChange(ruleStr)
+      } else if (next === 'seedance') {
+        setSeedanceConfig(
+          tryParseSeedanceExpr(billingExpr) || createDefaultSeedanceConfig()
+        )
       } else {
-        const expr = generateExprFromVisualConfig(visualConfig)
+        const expr =
+          editorMode === 'seedance'
+            ? generateSeedanceExpr(seedanceConfig)
+            : generateExprFromVisualConfig(visualConfig)
         const ruleExpr = buildRequestRuleExpr(requestRuleGroups)
         setRawExpr(combineBillingExpr(expr, ruleExpr) || expr)
       }
       setEditorMode(next)
     },
-    [rawExpr, visualConfig, requestRuleGroups, onRequestRuleExprChange]
+    [
+      editorMode,
+      rawExpr,
+      seedanceConfig,
+      visualConfig,
+      requestRuleGroups,
+      onRequestRuleExprChange,
+    ]
   )
 
   const applyPreset = useCallback(
@@ -1751,8 +1957,12 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
       const ruleExpr = buildRequestRuleExpr(presetGroups)
       const combined = combineBillingExpr(preset.expr, ruleExpr) || preset.expr
       setRawExpr(combined)
+      const parsedSeedance = tryParseSeedanceExpr(preset.expr)
       const parsed = tryParseVisualConfig(preset.expr)
-      if (parsed) {
+      if (parsedSeedance) {
+        setSeedanceConfig(parsedSeedance)
+        setEditorMode('seedance')
+      } else if (parsed) {
         setVisualConfig(parsed)
         setEditorMode('visual')
       } else {
@@ -1769,6 +1979,19 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
     setRequestRuleGroups(next)
   }, [])
 
+  let editorPanel = (
+    <RawExprEditor exprString={rawExpr} onChange={handleRawChange} />
+  )
+  if (editorMode === 'visual') {
+    editorPanel = (
+      <VisualEditor visualConfig={visualConfig} onChange={handleVisualChange} />
+    )
+  } else if (editorMode === 'seedance') {
+    editorPanel = (
+      <SeedanceEditor config={seedanceConfig} onChange={handleSeedanceChange} />
+    )
+  }
+
   return (
     <div className='space-y-5'>
       <div className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end'>
@@ -1777,6 +2000,7 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
           <Select
             items={[
               { value: 'visual', label: t('Visual editor') },
+              { value: 'seedance', label: t('Seedance 2.0') },
               { value: 'raw', label: t('Expression editor') },
             ]}
             value={editorMode}
@@ -1788,6 +2012,7 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
             <SelectContent alignItemWithTrigger={false}>
               <SelectGroup>
                 <SelectItem value='visual'>{t('Visual editor')}</SelectItem>
+                <SelectItem value='seedance'>{t('Seedance 2.0')}</SelectItem>
                 <SelectItem value='raw'>{t('Expression editor')}</SelectItem>
               </SelectGroup>
             </SelectContent>
@@ -1803,14 +2028,7 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
       <PresetSection applyPreset={applyPreset} />
 
       <div className='bg-muted/30 space-y-3 rounded-md border p-3'>
-        {editorMode === 'visual' ? (
-          <VisualEditor
-            visualConfig={visualConfig}
-            onChange={handleVisualChange}
-          />
-        ) : (
-          <RawExprEditor exprString={rawExpr} onChange={handleRawChange} />
-        )}
+        {editorPanel}
 
         {editorMode === 'visual' && (
           <div className='space-y-3 border-t pt-3'>

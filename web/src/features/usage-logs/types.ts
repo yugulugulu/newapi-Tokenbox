@@ -193,6 +193,9 @@ export interface LogOtherData {
   billing_mode?: string
   expr_b64?: string
   matched_tier?: string
+  billing_method?: 'per_second' | 'per_call' | string
+  resolution?: string
+  quantity?: number
   reasoning_effort?: string
   image?: boolean
   image_ratio?: number
