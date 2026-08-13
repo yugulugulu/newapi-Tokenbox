@@ -292,6 +292,9 @@ export interface TieredBillingSummary {
   tiers: ParsedTier[]
   tier: ParsedTier
   priceEntries: Array<{ field: string; shortLabel: string; price: number }>
+  billingMethod?: 'per_second' | 'per_call'
+  unitPrice?: number
+  quantity?: number
 }
 
 /**
@@ -337,7 +340,17 @@ export function getTieredBillingSummary(
       })
     }
   }
-  return { tiers, tier, priceEntries }
+  const billingMethod = tier.billing_method
+  const unitPrice = Number(tier.unit_price)
+  return {
+    tiers,
+    tier,
+    priceEntries,
+    billingMethod,
+    unitPrice:
+      Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : undefined,
+    quantity: other.quantity,
+  }
 }
 
 /**

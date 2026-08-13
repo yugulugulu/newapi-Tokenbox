@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"math"
 	"net/http"
@@ -193,6 +194,34 @@ func TestPriceDataReplaceAndApplyOtherRatios(t *testing.T) {
 	require.False(t, replaced)
 	assert.Nil(t, priceData.OtherRatios())
 	assert.Equal(t, 1.0, priceData.OtherRatioMultiplier())
+}
+
+func TestTaskBillingOtherIncludesTieredBillingMetadata(t *testing.T) {
+	task := makeTask(1, 1, 100, 0, BillingSourceWallet, 0)
+	task.PrivateData.BillingContext = &model.TaskBillingContext{
+		ModelPrice:    0.8,
+		GroupRatio:    0.2,
+		BillingMode:   "tiered_expr",
+		BillingExpr:   `v2:param("resolution") == "480p" ? tier("480p", charge("per_second", quantity, 0.2)) : tier("fallback", charge("per_call", quantity, 1))`,
+		BillingMethod: "per_second",
+		Resolution:    "480p",
+		Quantity:      4,
+		EstimatedTier: "480p",
+		ExprVersion:   2,
+	}
+
+	other := taskBillingOther(task)
+
+	assert.Equal(t, "tiered_expr", other["billing_mode"])
+	assert.Equal(t, "per_second", other["billing_method"])
+	assert.Equal(t, "480p", other["matched_tier"])
+	assert.Equal(t, "480p", other["resolution"])
+	assert.Equal(t, 4.0, other["quantity"])
+	exprB64, ok := other["expr_b64"].(string)
+	require.True(t, ok)
+	expr, err := base64.StdEncoding.DecodeString(exprB64)
+	require.NoError(t, err)
+	assert.Equal(t, task.PrivateData.BillingContext.BillingExpr, string(expr))
 }
 
 func TestTaskBillingOtherFiltersHistoricalOtherRatios(t *testing.T) {
@@ -525,9 +554,11 @@ func TestRecalculate_ActualQuotaZero(t *testing.T) {
 
 	RecalculateTaskQuota(ctx, task, 0, "zero actual")
 
-	// No change (early return)
-	assert.Equal(t, initQuota, getUserQuota(t, userID))
-	assert.Equal(t, int64(0), countLogs(t))
+	// A zero actual quota is a valid settlement result: the full pre-consume
+	// amount must be refunded rather than left charged.
+	assert.Equal(t, initQuota+5000, getUserQuota(t, userID))
+	assert.Equal(t, int64(1), countLogs(t))
+	assert.Equal(t, 0, task.Quota)
 }
 
 func TestRecalculate_Subscription_NegativeDelta(t *testing.T) {

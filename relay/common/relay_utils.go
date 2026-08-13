@@ -146,11 +146,14 @@ func validatePrompt(prompt string) *dto.TaskError {
 const MaxTaskDurationSeconds = 3600
 
 func validateTaskDurationBounds(req TaskSubmitReq) *dto.TaskError {
-	seconds := req.Duration
-	if seconds == 0 && req.Seconds != "" {
-		seconds, _ = strconv.Atoi(req.Seconds)
+	if req.Duration < 0 || req.Duration > MaxTaskDurationSeconds {
+		return createTaskError(fmt.Errorf("duration must be between 1 and %d", MaxTaskDurationSeconds), "invalid_seconds", http.StatusBadRequest, true)
 	}
-	if seconds < 0 || seconds > MaxTaskDurationSeconds {
+	if strings.TrimSpace(req.Seconds) == "" {
+		return nil
+	}
+	seconds, err := strconv.Atoi(strings.TrimSpace(req.Seconds))
+	if err != nil || seconds <= 0 || seconds > MaxTaskDurationSeconds {
 		return createTaskError(fmt.Errorf("seconds must be between 1 and %d", MaxTaskDurationSeconds), "invalid_seconds", http.StatusBadRequest, true)
 	}
 	return nil
@@ -164,18 +167,22 @@ func validateMultipartTaskRequest(c *gin.Context, info *RelayInfo, action string
 
 	formData := c.Request.PostForm
 	req = TaskSubmitReq{
-		Prompt:   formData.Get("prompt"),
-		Model:    formData.Get("model"),
-		Mode:     formData.Get("mode"),
-		Image:    formData.Get("image"),
-		Size:     formData.Get("size"),
-		Metadata: make(map[string]interface{}),
+		Prompt:     formData.Get("prompt"),
+		Model:      formData.Get("model"),
+		Mode:       formData.Get("mode"),
+		Image:      formData.Get("image"),
+		Size:       formData.Get("size"),
+		Resolution: formData.Get("resolution"),
+		Metadata:   make(map[string]interface{}),
 	}
 
-	if durationStr := formData.Get("seconds"); durationStr != "" {
-		if duration, err := strconv.Atoi(durationStr); err == nil {
-			req.Duration = duration
+	req.Seconds = formData.Get("seconds")
+	if durationStr := formData.Get("duration"); durationStr != "" {
+		duration, err := strconv.Atoi(strings.TrimSpace(durationStr))
+		if err != nil {
+			return req, fmt.Errorf("duration must be an integer: %w", err)
 		}
+		req.Duration = duration
 	}
 
 	if images := formData["images"]; len(images) > 0 {
@@ -275,6 +282,8 @@ func isKnownTaskField(field string) bool {
 		"images":          true,
 		"size":            true,
 		"duration":        true,
+		"seconds":         true,
+		"resolution":      true,
 		"input_reference": true, // Sora 特有字段
 	}
 	return knownFields[field]

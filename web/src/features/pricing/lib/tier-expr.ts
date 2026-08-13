@@ -48,6 +48,142 @@ export type VisualConfig = {
   tiers: VisualTier[]
 }
 
+export type SeedanceBillingMethod = 'per_second' | 'per_call'
+
+export type SeedanceTier = {
+  label: string
+  resolution?: string
+  method: SeedanceBillingMethod
+  price: number
+  fallback: boolean
+}
+
+export type SeedanceConfig = {
+  tiers: SeedanceTier[]
+}
+
+function normalizeSeedancePrice(value: unknown): number {
+  const price = Number(value)
+  if (!Number.isFinite(price) || price < 0) return 0
+  return Math.round(price * 1_000_000) / 1_000_000
+}
+
+export function normalizeSeedanceConfig(
+  config: SeedanceConfig | null | undefined
+): SeedanceConfig {
+  const tiers =
+    Array.isArray(config?.tiers) && config.tiers.length > 0
+      ? config.tiers
+      : [
+          {
+            label: 'fallback',
+            method: 'per_second' as const,
+            price: 0,
+            fallback: true,
+          },
+        ]
+  return {
+    tiers: tiers.map((tier, index) => ({
+      label: String(tier.label ?? ''),
+      resolution:
+        index === tiers.length - 1
+          ? undefined
+          : String(tier.resolution ?? '').trim(),
+      method: tier.method === 'per_call' ? 'per_call' : 'per_second',
+      price: normalizeSeedancePrice(tier.price),
+      fallback: index === tiers.length - 1,
+    })),
+  }
+}
+
+function formatSeedancePrice(value: number): string {
+  const normalized = normalizeSeedancePrice(value)
+  return normalized.toFixed(6).replace(/0+$/, '').replace(/\.$/, '') || '0'
+}
+
+export function createDefaultSeedanceConfig(): SeedanceConfig {
+  return normalizeSeedanceConfig({
+    tiers: [
+      { label: 'fallback', method: 'per_second', price: 0, fallback: true },
+    ],
+  })
+}
+
+export function generateSeedanceExpr(
+  config: SeedanceConfig | null | undefined
+): string {
+  const normalized = normalizeSeedanceConfig(config)
+  const parts = normalized.tiers.map((tier, index) => {
+    const label = JSON.stringify(
+      tier.label || (tier.fallback ? 'fallback' : `tier_${index + 1}`)
+    )
+    const charge = `charge(${JSON.stringify(tier.method)}, quantity, ${formatSeedancePrice(tier.price)})`
+    const body = `tier(${label}, ${charge})`
+    if (tier.fallback || index === normalized.tiers.length - 1) return body
+    return `param("resolution") == ${JSON.stringify((tier.resolution || '').trim())} ? ${body}`
+  })
+  return `v2:${parts.join(' : ')}`
+}
+
+export function tryParseSeedanceExpr(
+  exprStr: string | null | undefined
+): SeedanceConfig | null {
+  if (!exprStr || !exprStr.startsWith('v2:')) {
+    return null
+  }
+  const body = exprStr.slice(3).trim()
+  const branchRe = new RegExp(
+    String.raw`(?:(param\("resolution"\)\s*==\s*("(?:\\.|[^"\\])*"))\s*\?\s*)?tier\(("(?:\\.|[^"\\])*"),\s*charge\(("(?:per_second|per_call)"),\s*quantity,\s*([0-9]+(?:\.[0-9]+)?)\)\)`,
+    'g'
+  )
+  const tiers: SeedanceTier[] = []
+  let lastBranchHadCondition = false
+  let cursor = 0
+  let match: RegExpExecArray | null
+  while ((match = branchRe.exec(body)) !== null) {
+    if (
+      body.slice(cursor, match.index).trim() !== (tiers.length === 0 ? '' : ':')
+    ) {
+      return null
+    }
+    const hasCondition = Boolean(match[1])
+    lastBranchHadCondition = hasCondition
+    const label = JSON.parse(match[3]) as string
+    const method = JSON.parse(match[4]) as SeedanceBillingMethod
+    const price = Number(match[5])
+    tiers.push({
+      label,
+      resolution: hasCondition
+        ? String(JSON.parse(match[2])).trim()
+        : undefined,
+      method,
+      price,
+      fallback: false,
+    })
+    cursor = branchRe.lastIndex
+  }
+  if (
+    tiers.length === 0 ||
+    lastBranchHadCondition ||
+    body.slice(cursor).trim() !== '' ||
+    tiers.some((tier, index) =>
+      index === tiers.length - 1 ? false : !tier.resolution
+    )
+  ) {
+    return null
+  }
+  const fallbackTier = tiers.at(-1)
+  if (!fallbackTier) {
+    return null
+  }
+  fallbackTier.fallback = true
+  // The grammar above is deliberately strict enough to reject non-Seedance
+  // v2 expressions. Do not compare by removing all whitespace from the full
+  // expression: that would also remove meaningful spaces inside JSON strings
+  // such as a tier label or resolution value.
+  return normalizeSeedanceConfig({ tiers })
+}
+
 export function getTierCacheMode(
   tier: Partial<VisualTier> | null | undefined
 ): CacheMode {

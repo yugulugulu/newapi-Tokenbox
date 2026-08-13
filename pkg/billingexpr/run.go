@@ -30,7 +30,7 @@ func RunExprWithRequest(exprStr string, params TokenParams, request RequestInput
 	if err != nil {
 		return 0, TraceResult{}, err
 	}
-	return runProgram(prog, params, request)
+	return runProgram(prog, params, request, ExprVersion(exprStr))
 }
 
 // RunExprByHash is like RunExpr but accepts a pre-computed hash for the cache
@@ -45,24 +45,46 @@ func RunExprByHashWithRequest(exprStr, hash string, params TokenParams, request 
 	if err != nil {
 		return 0, TraceResult{}, err
 	}
-	return runProgram(prog, params, request)
+	return runProgram(prog, params, request, ExprVersion(exprStr))
 }
 
-func runProgram(prog *vm.Program, params TokenParams, request RequestInput) (float64, TraceResult, error) {
+func runProgram(prog *vm.Program, params TokenParams, request RequestInput, version int) (float64, TraceResult, error) {
 	trace := TraceResult{}
 	headers := normalizeHeaders(request.Headers)
 
 	env := map[string]interface{}{
-		"p":     params.P,
-		"c":     params.C,
-		"len":   params.Len,
-		"cr":    params.CR,
-		"cc":    params.CC,
-		"cc1h":  params.CC1h,
-		"img":   params.Img,
-		"img_o": params.ImgO,
-		"ai":    params.AI,
-		"ao":    params.AO,
+		"p":        params.P,
+		"c":        params.C,
+		"len":      params.Len,
+		"cr":       params.CR,
+		"cc":       params.CC,
+		"cc1h":     params.CC1h,
+		"img":      params.Img,
+		"img_o":    params.ImgO,
+		"ai":       params.AI,
+		"ao":       params.AO,
+		"quantity": params.Quantity,
+		"charge": func(method string, quantity float64, price float64) (float64, error) {
+			if version != 2 {
+				return 0, fmt.Errorf("charge is only available in v2 expressions")
+			}
+			if math.IsNaN(quantity) || math.IsInf(quantity, 0) || quantity < 0 {
+				return 0, fmt.Errorf("quantity must be finite and non-negative")
+			}
+			if math.IsNaN(price) || math.IsInf(price, 0) || price < 0 {
+				return 0, fmt.Errorf("price must be finite and non-negative")
+			}
+			switch strings.TrimSpace(method) {
+			case "per_second":
+				trace.BillingMethod = "per_second"
+				return quantity * price, nil
+			case "per_call":
+				trace.BillingMethod = "per_call"
+				return price, nil
+			default:
+				return 0, fmt.Errorf("unsupported charge method %q", method)
+			}
+		},
 		"tier": func(name string, value float64) float64 {
 			trace.MatchedTier = name
 			trace.Cost = value
@@ -107,6 +129,12 @@ func runProgram(prog *vm.Program, params TokenParams, request RequestInput) (flo
 	f, ok := out.(float64)
 	if !ok {
 		return 0, trace, fmt.Errorf("expr result is %T, want float64", out)
+	}
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return 0, trace, fmt.Errorf("expr result must be finite")
+	}
+	if version == 2 && f < 0 {
+		return 0, trace, fmt.Errorf("v2 expr result cannot be negative")
 	}
 	return f, trace, nil
 }

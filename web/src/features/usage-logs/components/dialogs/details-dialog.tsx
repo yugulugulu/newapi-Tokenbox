@@ -238,6 +238,33 @@ function BillingBreakdown(props: {
       value: t('Dynamic Pricing'),
     })
     if (tieredSummary) {
+      if (
+        tieredSummary.billingMethod === 'per_second' ||
+        tieredSummary.billingMethod === 'per_call'
+      ) {
+        rows.push({
+          label: t('Billing Method'),
+          value:
+            tieredSummary.billingMethod === 'per_second'
+              ? t('Per second')
+              : t('Per-call'),
+        })
+        if (tieredSummary.unitPrice != null) {
+          rows.push({
+            label: t('Unit Price'),
+            value: formatBillingCurrencyFromUSD(
+              tieredSummary.unitPrice,
+              priceOpts
+            ),
+          })
+        }
+        if (tieredSummary.quantity != null) {
+          rows.push({
+            label: t('Quantity'),
+            value: String(tieredSummary.quantity),
+          })
+        }
+      }
       if (tieredSummary.tier.label) {
         rows.push({
           label: t('Matched Tier'),

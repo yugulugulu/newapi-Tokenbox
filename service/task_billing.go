@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -15,13 +16,38 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// attachTieredBillingMetadata preserves the request-time dynamic pricing
+// decision in usage logs. model_price alone is ambiguous: a positive value can
+// be either a fixed per-call price or the computed result of a per-unit rule.
+func attachTieredBillingMetadata(other map[string]interface{}, billingMode, expr, method, matchedTier, resolution string, quantity float64) {
+	if other == nil || billingMode != "tiered_expr" || expr == "" {
+		return
+	}
+	other["billing_mode"] = billingMode
+	other["expr_b64"] = base64.StdEncoding.EncodeToString([]byte(expr))
+	if method != "" {
+		other["billing_method"] = method
+	}
+	if matchedTier != "" {
+		other["matched_tier"] = matchedTier
+	}
+	if resolution != "" {
+		other["resolution"] = resolution
+	}
+	if quantity > 0 {
+		other["quantity"] = quantity
+	}
+}
+
 // LogTaskConsumption 记录任务消费日志和统计信息（仅记录，不涉及实际扣费）。
 // 实际扣费已由 BillingSession（PreConsumeBilling + SettleBilling）完成。
 func LogTaskConsumption(c *gin.Context, info *relaycommon.RelayInfo) {
 	tokenName := c.GetString("token_name")
 	logContent := fmt.Sprintf("操作 %s", info.Action)
-	// 支持任务仅按次计费
-	if common.StringsContains(constant.TaskPricePatches, info.OriginModelName) {
+	// A fixed model price is a per-call task price. Dynamic v2 pricing carries
+	// its own billing method; legacy TASK_PRICE_PATCH remains supported for old
+	// configurations.
+	if info.TieredBillingSnapshot == nil && (info.PriceData.UsePrice || common.StringsContains(constant.TaskPricePatches, info.OriginModelName)) {
 		logContent = fmt.Sprintf("%s，按次计费", logContent)
 	} else {
 		if otherRatios := info.PriceData.OtherRatios(); len(otherRatios) > 0 {
@@ -46,6 +72,9 @@ func LogTaskConsumption(c *gin.Context, info *relaycommon.RelayInfo) {
 	other["group_ratio"] = info.PriceData.GroupRatioInfo.GroupRatio
 	if info.PriceData.GroupRatioInfo.HasSpecialRatio {
 		other["user_group_ratio"] = info.PriceData.GroupRatioInfo.GroupSpecialRatio
+	}
+	if snapshot := info.TieredBillingSnapshot; snapshot != nil {
+		attachTieredBillingMetadata(other, snapshot.BillingMode, snapshot.ExprString, snapshot.BillingMethod, snapshot.EstimatedTier, snapshot.Resolution, snapshot.Quantity)
 	}
 	if info.IsModelMapped {
 		other["is_model_mapped"] = true
@@ -127,6 +156,7 @@ func taskBillingOther(task *model.Task) map[string]interface{} {
 			other["model_ratio"] = bc.ModelRatio
 		}
 		other["group_ratio"] = bc.GroupRatio
+		attachTieredBillingMetadata(other, bc.BillingMode, bc.BillingExpr, bc.BillingMethod, bc.EstimatedTier, bc.Resolution, bc.Quantity)
 		if priceData := taskBillingContextPriceData(bc); priceData != nil {
 			for k, v := range priceData.OtherRatios() {
 				other[k] = v
@@ -208,7 +238,8 @@ func RefundTaskQuota(ctx context.Context, task *model.Task, reason string) bool 
 // reason 用于日志记录（例如 "token重算" 或 "adaptor调整"）。
 // clamps 可选：若计算 actualQuota 时发生额度饱和，将其记入日志 admin_info（仅管理员可见）。
 func RecalculateTaskQuota(ctx context.Context, task *model.Task, actualQuota int, reason string, clamps ...*common.QuotaClamp) {
-	if actualQuota <= 0 {
+	if actualQuota < 0 {
+		logger.LogError(ctx, fmt.Sprintf("任务 %s 实际结算额度不能为负数：%d（%s）", task.TaskID, actualQuota, reason))
 		return
 	}
 	preConsumedQuota := task.Quota
