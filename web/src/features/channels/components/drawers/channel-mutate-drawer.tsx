@@ -919,6 +919,10 @@ export function ChannelMutateDrawer({
     () => parseModelsString(currentModels),
     [currentModels]
   )
+  const hasGptImage2Model = useMemo(
+    () => currentModelsArray.some((model) => model.startsWith('gpt-image-2')),
+    [currentModelsArray]
+  )
 
   const currentTypeLabel = useMemo(
     () =>
@@ -3322,6 +3326,57 @@ export function ChannelMutateDrawer({
                               )}
                             />
 
+                            {hasGptImage2Model && (
+                              <FormField
+                                control={form.control}
+                                name='image_resolution_limit'
+                                render={({ field }) => (
+                                  <FormItem className='mt-4'>
+                                    <FormLabel>
+                                      {t('Image resolution limit')}
+                                    </FormLabel>
+                                    <Select
+                                      items={[
+                                        {
+                                          value: 'unlimited',
+                                          label: t('Unlimited'),
+                                        },
+                                        { value: '1k', label: '1K' },
+                                        { value: '2k', label: '2K' },
+                                        { value: '4k', label: '4K' },
+                                      ]}
+                                      onValueChange={field.onChange}
+                                      value={field.value || 'unlimited'}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent
+                                        alignItemWithTrigger={false}
+                                      >
+                                        <SelectGroup>
+                                          <SelectItem value='unlimited'>
+                                            {t('Unlimited')}
+                                          </SelectItem>
+                                          <SelectItem value='1k'>1K</SelectItem>
+                                          <SelectItem value='2k'>2K</SelectItem>
+                                          <SelectItem value='4k'>4K</SelectItem>
+                                        </SelectGroup>
+                                      </SelectContent>
+                                    </Select>
+                                    <FormDescription>
+                                      {t(
+                                        'Limit the maximum width and height for gpt-image-2 requests on this channel.'
+                                      )}
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            )}
+
                             <Separator className='my-4' />
 
                             <div className='space-y-3'>
@@ -4233,9 +4288,7 @@ export function ChannelMutateDrawer({
                                         <SelectValue />
                                       </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent
-                                      alignItemWithTrigger={false}
-                                    >
+                                    <SelectContent alignItemWithTrigger={false}>
                                       <SelectGroup>
                                         <SelectItem value='auto'>
                                           {t('Auto')}

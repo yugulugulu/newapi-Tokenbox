@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -26,6 +27,14 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 	imageReq, ok := info.Request.(*dto.ImageRequest)
 	if !ok {
 		return types.NewErrorWithStatusCode(fmt.Errorf("invalid request type, expected dto.ImageRequest, got %T", info.Request), types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+	}
+
+	modelName := info.OriginModelName
+	if modelName == "" {
+		modelName = imageReq.Model
+	}
+	if err := validateImageResolutionLimit(modelName, imageReq.Size, info.ChannelOtherSettings.ImageResolutionLimit); err != nil {
+		return types.NewErrorWithStatusCode(err, types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 	}
 
 	request, err := common.DeepCopy(imageReq)
@@ -148,4 +157,64 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 
 	service.PostTextConsumeQuota(c, info, usage.(*dto.Usage), logContent)
 	return nil
+}
+
+func validateImageResolutionLimit(modelName string, size string, limit dto.ImageResolutionLimit) error {
+	if !strings.HasPrefix(modelName, "gpt-image-2") {
+		return nil
+	}
+
+	maxSide := 0
+	switch limit {
+	case dto.ImageResolutionLimit1K:
+		maxSide = 1024
+	case dto.ImageResolutionLimit2K:
+		maxSide = 2048
+	case dto.ImageResolutionLimit4K:
+		maxSide = 4096
+	default:
+		return nil
+	}
+
+	size = strings.TrimSpace(size)
+	if size == "" {
+		size = "1024x1024"
+	}
+
+	widthText, heightText, ok := strings.Cut(size, "x")
+	if !ok || strings.Contains(heightText, "x") {
+		return fmt.Errorf("invalid image size %q: expected widthxheight", size)
+	}
+
+	width, err := parsePositiveImageDimension(widthText)
+	if err != nil {
+		return fmt.Errorf("invalid image size %q: width must be a positive integer", size)
+	}
+	height, err := parsePositiveImageDimension(heightText)
+	if err != nil {
+		return fmt.Errorf("invalid image size %q: height must be a positive integer", size)
+	}
+
+	if width > maxSide || height > maxSide {
+		return fmt.Errorf("image size %q exceeds channel resolution limit %s", size, limit)
+	}
+
+	return nil
+}
+
+func parsePositiveImageDimension(value string) (int, error) {
+	if value == "" {
+		return 0, fmt.Errorf("dimension is empty")
+	}
+	for i := 0; i < len(value); i++ {
+		if value[i] < '0' || value[i] > '9' {
+			return 0, fmt.Errorf("dimension contains non-digit characters")
+		}
+	}
+
+	dimension, err := strconv.Atoi(value)
+	if err != nil || dimension <= 0 {
+		return 0, fmt.Errorf("dimension must be positive")
+	}
+	return dimension, nil
 }
