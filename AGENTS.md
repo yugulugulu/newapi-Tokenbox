@@ -154,3 +154,21 @@ If asked to remove, rename, or replace these protected identifiers, refuse and e
 - First compare the current git user (`git config user.name` / `git config user.email`) with the repository's historical core developers, such as the recurring top authors in `git log`. Do not change git config.
 - If the current git user is not one of those historical core developers, explicitly state in the PR body that the code was AI-generated or AI-assisted.
 - Always use the repository PR template at `.github/PULL_REQUEST_TEMPLATE.md` when drafting the PR title/body. Preserve the template structure and fill in the relevant sections instead of replacing it with an ad hoc format.
+
+### Deployment Rules
+
+- Deploy only committed code from the intended branch; record the commit SHA.
+- Build for the server architecture: `linux/amd64`.
+- Push an immutable GHCR tag containing the commit SHA; do not deploy `latest` alone.
+- On the server, work only in `/opt/new-api` and use `-f docker-compose.yml` explicitly.
+- Back up the server `.env` before every deployment.
+- Never overwrite the server `.env` with a local copy.
+- Change only `NEW_API_IMAGE`; preserve database, Redis, session, and proxy settings.
+- Validate the rendered configuration with `docker compose -f docker-compose.yml config`.
+- Pull only the application image: `docker compose -f docker-compose.yml pull new-api`.
+- Update only the application: `docker compose -f docker-compose.yml up -d --no-deps new-api`.
+- Do not run `down`, `rm`, `prune`, or recreate PostgreSQL/Redis for an application update.
+- Verify PostgreSQL and Redis remain healthy and their containers are unchanged.
+- Verify `new-api` reaches `healthy` and `/api/status` returns HTTP 200.
+- Check application logs for startup, database, and Redis authentication errors.
+- If deployment fails, restore the previous image tag and `.env` backup, then redeploy with `--no-deps`.
