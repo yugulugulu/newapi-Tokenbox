@@ -57,6 +57,7 @@ type BillingSnapshot struct {
 	ExprVersion               int     `json:"expr_version"`
 	BillingMethod             string  `json:"billing_method,omitempty"`
 	Resolution                string  `json:"resolution,omitempty"`
+	HasVideoInput             bool    `json:"has_video_input,omitempty"`
 	Quantity                  float64 `json:"quantity,omitempty"`
 	TaskCount                 int     `json:"task_count"`
 }

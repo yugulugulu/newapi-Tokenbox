@@ -681,6 +681,7 @@ func RelayTask(c *gin.Context) {
 			billingContext.ExprVersion = snapshot.ExprVersion
 			billingContext.BillingMethod = snapshot.BillingMethod
 			billingContext.Resolution = snapshot.Resolution
+			billingContext.HasVideoInput = snapshot.HasVideoInput
 			billingContext.Quantity = snapshot.Quantity
 			billingContext.EstimatedTier = snapshot.EstimatedTier
 			billingContext.TaskCount = snapshot.TaskCount

@@ -140,6 +140,18 @@ func validatePrompt(prompt string) *dto.TaskError {
 	return nil
 }
 
+func validateTaskPrompt(req TaskSubmitReq) *dto.TaskError {
+	if strings.TrimSpace(req.Prompt) != "" {
+		return nil
+	}
+	for _, item := range req.Content {
+		if item.Type == "text" && strings.TrimSpace(item.Text) != "" {
+			return nil
+		}
+	}
+	return validatePrompt(req.Prompt)
+}
+
 // MaxTaskDurationSeconds caps user-supplied video duration. Duration is used
 // as a billing multiplier (OtherRatio "seconds"); an unbounded value could
 // overflow quota calculation into a negative charge.
@@ -204,7 +216,6 @@ func validateMultipartTaskRequest(c *gin.Context, info *RelayInfo, action string
 }
 
 func ValidateMultipartDirect(c *gin.Context, info *RelayInfo) *dto.TaskError {
-	var prompt string
 	var model string
 	var seconds int
 	var size string
@@ -215,7 +226,6 @@ func ValidateMultipartDirect(c *gin.Context, info *RelayInfo) *dto.TaskError {
 		return createTaskError(err, "invalid_json", http.StatusBadRequest, true)
 	}
 
-	prompt = req.Prompt
 	model = req.Model
 	size = req.Size
 	seconds, _ = strconv.Atoi(req.Seconds)
@@ -237,7 +247,7 @@ func ValidateMultipartDirect(c *gin.Context, info *RelayInfo) *dto.TaskError {
 		hasInputReference = true
 	}
 
-	if taskErr := validatePrompt(prompt); taskErr != nil {
+	if taskErr := validatePrompt(req.Prompt); taskErr != nil {
 		return taskErr
 	}
 
@@ -304,7 +314,8 @@ func ValidateBasicTaskRequest(c *gin.Context, info *RelayInfo, action string) *d
 		return createTaskError(err, "invalid_request", http.StatusBadRequest, true)
 	}
 
-	if taskErr := validatePrompt(req.Prompt); taskErr != nil {
+	allowTopLevelContent := info != nil && info.ChannelMeta != nil && (info.ChannelType == constant.ChannelTypeDoubaoVideo || info.ChannelType == constant.ChannelTypeVolcEngine)
+	if taskErr := validatePrompt(req.Prompt); taskErr != nil && !(allowTopLevelContent && validateTaskPrompt(req) == nil) {
 		return taskErr
 	}
 

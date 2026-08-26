@@ -12,6 +12,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/types"
 	"github.com/glebarez/sqlite"
@@ -847,6 +848,45 @@ func TestSettle_PerCallBilling_SkipsTotalTokens(t *testing.T) {
 	assert.Equal(t, tokenRemain, getTokenRemainQuota(t, tokenID))
 	assert.Equal(t, preConsumed, task.Quota)
 	assert.Equal(t, int64(0), countLogs(t))
+}
+
+func TestSettle_SeedancePerSecondUsesFrozenVideoInput(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+
+	const userID, tokenID, channelID = 33, 33, 33
+	const initQuota, tokenRemain = 5_000_000, 4_000_000
+	const preConsumed = 1_275_000
+	const expectedQuota = 775_000
+
+	seedUser(t, userID, initQuota)
+	seedToken(t, tokenID, userID, "sk-seedance-video", tokenRemain)
+	seedChannel(t, channelID)
+
+	expr := `v2:param("resolution") == "720p" && has_media("video") ? tier("720p_video", charge("per_second", quantity, 0.31)) : param("resolution") == "720p" ? tier("720p_no_video", charge("per_second", quantity, 0.51)) : tier("fallback", charge("per_second", quantity, 0.46))`
+	task := makeTask(userID, channelID, preConsumed, tokenID, BillingSourceWallet, 0)
+	task.PrivateData.BillingContext = &model.TaskBillingContext{
+		BillingMode:     "tiered_expr",
+		BillingExpr:     expr,
+		ExprHash:        billingexpr.ExprHashString(expr),
+		ExprVersion:     2,
+		BillingMethod:   "per_second",
+		Resolution:      "720p",
+		HasVideoInput:   true,
+		Quantity:        5,
+		EstimatedTier:   "720p_video",
+		GroupRatio:      1,
+		OriginModelName: "test-model",
+	}
+
+	settleTaskBillingOnComplete(ctx, &mockAdaptor{}, task, &relaycommon.TaskInfo{Status: model.TaskStatusSuccess})
+
+	assert.Equal(t, expectedQuota, task.Quota)
+	assert.Equal(t, initQuota+(preConsumed-expectedQuota), getUserQuota(t, userID))
+	assert.Equal(t, tokenRemain+(preConsumed-expectedQuota), getTokenRemainQuota(t, tokenID))
+	log := getLastLog(t)
+	require.NotNil(t, log)
+	assert.Equal(t, model.LogTypeRefund, log.Type)
 }
 
 func TestSettle_NonPerCallBilling_AppliesAdaptorAdjustment(t *testing.T) {

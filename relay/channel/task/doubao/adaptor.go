@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -28,28 +29,15 @@ import (
 // Request / Response structures
 // ============================
 
-type ContentItem struct {
-	Type     string    `json:"type,omitempty"`
-	Text     string    `json:"text,omitempty"`
-	ImageURL *MediaURL `json:"image_url,omitempty"`
-	VideoURL *MediaURL `json:"video_url,omitempty"`
-	AudioURL *MediaURL `json:"audio_url,omitempty"`
-	Role     string    `json:"role,omitempty"`
-}
-
-type MediaURL struct {
-	URL string `json:"url,omitempty"`
-}
-
 type requestPayload struct {
-	Model                 string         `json:"model"`
-	Content               []ContentItem  `json:"content,omitempty"`
-	CallbackURL           string         `json:"callback_url,omitempty"`
-	ReturnLastFrame       *dto.BoolValue `json:"return_last_frame,omitempty"`
-	ServiceTier           string         `json:"service_tier,omitempty"`
-	ExecutionExpiresAfter *dto.IntValue  `json:"execution_expires_after,omitempty"`
-	GenerateAudio         *dto.BoolValue `json:"generate_audio,omitempty"`
-	Draft                 *dto.BoolValue `json:"draft,omitempty"`
+	Model                 string                        `json:"model"`
+	Content               []relaycommon.TaskContentItem `json:"content,omitempty"`
+	CallbackURL           string                        `json:"callback_url,omitempty"`
+	ReturnLastFrame       *dto.BoolValue                `json:"return_last_frame,omitempty"`
+	ServiceTier           string                        `json:"service_tier,omitempty"`
+	ExecutionExpiresAfter *dto.IntValue                 `json:"execution_expires_after,omitempty"`
+	GenerateAudio         *dto.BoolValue                `json:"generate_audio,omitempty"`
+	Draft                 *dto.BoolValue                `json:"draft,omitempty"`
 	Tools                 []struct {
 		Type string `json:"type,omitempty"`
 	} `json:"tools,omitempty"`
@@ -135,19 +123,34 @@ func (a *TaskAdaptor) BuildRequestHeader(_ *gin.Context, req *http.Request, _ *r
 	return nil
 }
 
-// EstimateBilling 根据请求 metadata 中的输出分辨率与是否包含视频输入，返回相对基准价的计费 OtherRatio。
+// EstimateBilling 根据输出分辨率与是否包含视频输入，返回相对基准价的计费 OtherRatio。
 func (a *TaskAdaptor) EstimateBilling(c *gin.Context, info *relaycommon.RelayInfo) map[string]float64 {
 	req, err := relaycommon.GetTaskRequest(c)
 	if err != nil {
 		return nil
 	}
-	hasVideo := hasVideoInMetadata(req.Metadata)
-	resolution, _ := req.Metadata["resolution"].(string)
+	hasVideo := hasVideoInContent(req.Content)
+	if len(req.Content) == 0 {
+		hasVideo = hasVideoInMetadata(req.Metadata)
+	}
+	resolution := strings.TrimSpace(req.Resolution)
+	if resolution == "" {
+		resolution, _ = req.Metadata["resolution"].(string)
+	}
 	ratio, ok := GetVideoInputRatio(info.OriginModelName, resolution, hasVideo)
 	if !ok || ratio == 1.0 {
 		return nil
 	}
 	return map[string]float64{"video_input": ratio}
+}
+
+func hasVideoInContent(content []relaycommon.TaskContentItem) bool {
+	for _, item := range content {
+		if item.VideoURL != nil && strings.TrimSpace(item.VideoURL.URL) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 // hasVideoInMetadata 直接检查 metadata 的 content 数组是否包含 video_url 条目，
@@ -274,15 +277,15 @@ func (a *TaskAdaptor) GetChannelName() string {
 func (a *TaskAdaptor) convertToRequestPayload(req *relaycommon.TaskSubmitReq) (*requestPayload, error) {
 	r := requestPayload{
 		Model:   req.Model,
-		Content: []ContentItem{},
+		Content: []relaycommon.TaskContentItem{},
 	}
 
 	// Add images if present
 	if req.HasImage() {
 		for _, imgURL := range req.Images {
-			r.Content = append(r.Content, ContentItem{
+			r.Content = append(r.Content, relaycommon.TaskContentItem{
 				Type: "image_url",
-				ImageURL: &MediaURL{
+				ImageURL: &relaycommon.TaskMediaURL{
 					URL: imgURL,
 				},
 			})
@@ -294,15 +297,34 @@ func (a *TaskAdaptor) convertToRequestPayload(req *relaycommon.TaskSubmitReq) (*
 		return nil, errors.Wrap(err, "unmarshal metadata failed")
 	}
 
-	if sec, _ := strconv.Atoi(req.Seconds); sec > 0 {
+	if len(req.Content) > 0 {
+		r.Content = req.Content
+	}
+	if strings.TrimSpace(req.Resolution) != "" {
+		r.Resolution = strings.TrimSpace(req.Resolution)
+	}
+	if strings.TrimSpace(req.Ratio) != "" {
+		r.Ratio = strings.TrimSpace(req.Ratio)
+	}
+	if req.Duration > 0 {
+		r.Duration = lo.ToPtr(dto.IntValue(req.Duration))
+	} else if sec, _ := strconv.Atoi(req.Seconds); sec > 0 {
 		r.Duration = lo.ToPtr(dto.IntValue(sec))
 	}
+	if req.GenerateAudio != nil {
+		r.GenerateAudio = lo.ToPtr(dto.BoolValue(*req.GenerateAudio))
+	}
+	if req.Watermark != nil {
+		r.Watermark = lo.ToPtr(dto.BoolValue(*req.Watermark))
+	}
 
-	r.Content = lo.Reject(r.Content, func(c ContentItem, _ int) bool { return c.Type == "text" })
-	r.Content = append(r.Content, ContentItem{
-		Type: "text",
-		Text: req.Prompt,
-	})
+	if strings.TrimSpace(req.Prompt) != "" {
+		r.Content = lo.Reject(r.Content, func(c relaycommon.TaskContentItem, _ int) bool { return c.Type == "text" })
+		r.Content = append(r.Content, relaycommon.TaskContentItem{
+			Type: "text",
+			Text: req.Prompt,
+		})
+	}
 
 	return &r, nil
 }

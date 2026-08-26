@@ -2,7 +2,6 @@ package helper
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -69,10 +68,15 @@ func PrepareTaskV2Billing(c *gin.Context, info *relaycommon.RelayInfo) (priceDat
 	if err != nil {
 		return hosttypes.PriceData{}, true, err
 	}
-	resolution := strings.TrimSpace(req.Resolution)
-	requestBody, err := common.Marshal(struct {
-		Resolution string `json:"resolution,omitempty"`
-	}{Resolution: resolution})
+	resolution, err := normalizeTaskResolution(req)
+	if err != nil {
+		return hosttypes.PriceData{}, true, err
+	}
+	hasVideoInput, err := taskHasVideoInput(req)
+	if err != nil {
+		return hosttypes.PriceData{}, true, err
+	}
+	requestBody, err := buildTaskV2BillingRequestBody(resolution, hasVideoInput)
 	if err != nil {
 		return hosttypes.PriceData{}, true, fmt.Errorf("marshal task billing request: %w", err)
 	}
@@ -120,6 +124,7 @@ func PrepareTaskV2Billing(c *gin.Context, info *relaycommon.RelayInfo) (priceDat
 		ExprVersion:               2,
 		BillingMethod:             method,
 		Resolution:                resolution,
+		HasVideoInput:             hasVideoInput,
 		Quantity:                  float64(quantity),
 		TaskCount:                 1,
 	}
@@ -136,21 +141,58 @@ func PrepareTaskV2Billing(c *gin.Context, info *relaycommon.RelayInfo) (priceDat
 	return info.PriceData, true, nil
 }
 
+func normalizeTaskResolution(req relaycommon.TaskSubmitReq) (string, error) {
+	resolution := strings.TrimSpace(req.Resolution)
+	if resolution == "" {
+		return "", fmt.Errorf("resolution is required at the top level for v2 video billing")
+	}
+	return resolution, nil
+}
+
+func taskHasVideoInput(req relaycommon.TaskSubmitReq) (bool, error) {
+	if len(req.Content) == 0 && req.Metadata != nil {
+		if _, exists := req.Metadata["content"]; exists {
+			return false, fmt.Errorf("content is required at the top level for v2 video billing")
+		}
+	}
+	body, err := common.Marshal(struct {
+		Content []relaycommon.TaskContentItem `json:"content,omitempty"`
+	}{Content: req.Content})
+	if err != nil {
+		return false, fmt.Errorf("marshal task content for billing: %w", err)
+	}
+	return billingexpr.RequestHasMedia(body, "video"), nil
+}
+
+func buildTaskV2BillingRequestBody(resolution string, hasVideoInput bool) ([]byte, error) {
+	type mediaURL struct {
+		URL string `json:"url"`
+	}
+	type contentItem struct {
+		Type     string    `json:"type"`
+		VideoURL *mediaURL `json:"video_url,omitempty"`
+	}
+	body := struct {
+		Resolution string        `json:"resolution,omitempty"`
+		Content    []contentItem `json:"content,omitempty"`
+	}{Resolution: resolution}
+	if hasVideoInput {
+		body.Content = []contentItem{{
+			Type:     "video_url",
+			VideoURL: &mediaURL{URL: "present"},
+		}}
+	}
+	return common.Marshal(body)
+}
+
 func normalizeTaskQuantity(req relaycommon.TaskSubmitReq) (int, error) {
-	if req.Duration > 0 {
-		if req.Duration > relaycommon.MaxTaskDurationSeconds {
-			return 0, fmt.Errorf("duration must be between 1 and %d", relaycommon.MaxTaskDurationSeconds)
-		}
-		return req.Duration, nil
+	if req.Duration <= 0 {
+		return 0, fmt.Errorf("duration must be between 1 and %d", relaycommon.MaxTaskDurationSeconds)
 	}
-	if strings.TrimSpace(req.Seconds) != "" {
-		seconds, err := strconv.Atoi(strings.TrimSpace(req.Seconds))
-		if err != nil || seconds <= 0 || seconds > relaycommon.MaxTaskDurationSeconds {
-			return 0, fmt.Errorf("seconds must be between 1 and %d", relaycommon.MaxTaskDurationSeconds)
-		}
-		return seconds, nil
+	if req.Duration > relaycommon.MaxTaskDurationSeconds {
+		return 0, fmt.Errorf("duration must be between 1 and %d", relaycommon.MaxTaskDurationSeconds)
 	}
-	return 5, nil
+	return req.Duration, nil
 }
 
 // billingMethodFromTrace returns the method of the charge branch that actually

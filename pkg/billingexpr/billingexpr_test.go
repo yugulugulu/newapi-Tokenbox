@@ -1027,6 +1027,76 @@ func TestV2VideoCharge(t *testing.T) {
 	assert.Equal(t, "per_call", trace.BillingMethod)
 }
 
+func TestV2VideoChargeByVideoInput(t *testing.T) {
+	expr := `v2:param("resolution") == "720p" && has_media("video") ? tier("720p_video", charge("per_second", quantity, 0.31)) : param("resolution") == "720p" ? tier("720p_no_video", charge("per_second", quantity, 0.51)) : tier("fallback", charge("per_second", quantity, 0.46))`
+
+	tests := []struct {
+		name     string
+		body     string
+		wantCost float64
+		wantTier string
+	}{
+		{
+			name:     "valid video url selects video price",
+			body:     `{"resolution":"720p","content":[{"type":"video_url","video_url":{"url":"https://example.com/reference.mp4"}}]}`,
+			wantCost: 1.55,
+			wantTier: "720p_video",
+		},
+		{
+			name:     "empty video url does not select video price",
+			body:     `{"resolution":"720p","content":[{"type":"video_url","video_url":{"url":""}}]}`,
+			wantCost: 2.55,
+			wantTier: "720p_no_video",
+		},
+		{
+			name:     "video object without type remains compatible",
+			body:     `{"resolution":"720p","content":[{"video_url":{"url":"https://example.com/reference.mp4"}}]}`,
+			wantCost: 1.55,
+			wantTier: "720p_video",
+		},
+		{
+			name:     "non-video media does not select video price",
+			body:     `{"resolution":"720p","content":[{"type":"image_url","image_url":{"url":"https://example.com/reference.jpg"}}]}`,
+			wantCost: 2.55,
+			wantTier: "720p_no_video",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cost, trace, err := billingexpr.RunExprWithRequest(expr, billingexpr.TokenParams{Quantity: 5}, billingexpr.RequestInput{Body: []byte(tt.body)})
+			require.NoError(t, err)
+			assert.InDelta(t, tt.wantCost, cost, 1e-9)
+			assert.Equal(t, tt.wantTier, trace.MatchedTier)
+			assert.Equal(t, "per_second", trace.BillingMethod)
+		})
+	}
+}
+
+func TestV2VideoPriceWithinSingleResolutionTier(t *testing.T) {
+	expr := `v2:param("resolution") == "720p" ? tier("720p", charge("per_second", quantity, has_media("video") ? 0.31 : 0.51)) : tier("fallback", charge("per_second", quantity, 0.46))`
+	body := []byte(`{"resolution":"720p","content":[{"type":"video_url","video_url":{"url":"https://example.com/reference.mp4"}}]}`)
+
+	cost, trace, err := billingexpr.RunExprWithRequest(expr, billingexpr.TokenParams{Quantity: 5}, billingexpr.RequestInput{Body: body})
+	require.NoError(t, err)
+	assert.InDelta(t, 1.55, cost, 1e-9)
+	assert.Equal(t, "720p", trace.MatchedTier)
+	assert.Equal(t, "per_second", trace.BillingMethod)
+}
+
+func TestHasMediaIsV2Only(t *testing.T) {
+	_, err := billingexpr.CompileFromCache(`has_media("video") ? tier("video", p) : tier("base", p)`)
+	require.Error(t, err)
+}
+
+func TestIsV2VideoExprSupportsFallbackOnlyTemplate(t *testing.T) {
+	assert.True(t, billingexpr.IsV2VideoExpr(`v2:tier("fallback", charge("per_second", quantity, 0.46))`))
+	assert.True(t, billingexpr.IsV2VideoExpr(`v2:param("resolution") == "720p" ? tier("720p", charge("per_call", quantity, 1)) : tier("fallback", charge("per_call", quantity, 2))`))
+	assert.False(t, billingexpr.IsV2VideoExpr(`v2:tier("base", p * 2 + c * 4)`))
+	assert.False(t, billingexpr.IsV2VideoExpr(`v2:charge("per_call", quantity, 2)`))
+	assert.False(t, billingexpr.IsV2VideoExpr(`tier("fallback", p * quantity)`))
+}
+
 func TestV2RejectsInvalidCharge(t *testing.T) {
 	for _, expression := range []string{
 		`v2:charge("per_second", quantity, -1)`,
