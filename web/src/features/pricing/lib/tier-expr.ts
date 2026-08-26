@@ -49,11 +49,13 @@ export type VisualConfig = {
 }
 
 export type SeedanceBillingMethod = 'per_second' | 'per_call'
+export type SeedanceVideoInput = 'with_video' | 'without_video'
 
 export type SeedanceTier = {
   label: string
   resolution?: string
   method: SeedanceBillingMethod
+  videoInput?: SeedanceVideoInput
   price: number
   fallback: boolean
 }
@@ -83,16 +85,24 @@ export function normalizeSeedanceConfig(
           },
         ]
   return {
-    tiers: tiers.map((tier, index) => ({
-      label: String(tier.label ?? ''),
-      resolution:
-        index === tiers.length - 1
+    tiers: tiers.map((tier, index) => {
+      const fallback = index === tiers.length - 1
+      let videoInput: SeedanceVideoInput | undefined
+      if (!fallback && tier.method !== 'per_call') {
+        videoInput =
+          tier.videoInput === 'with_video' ? 'with_video' : 'without_video'
+      }
+      return {
+        label: String(tier.label ?? ''),
+        resolution: fallback
           ? undefined
           : String(tier.resolution ?? '').trim(),
-      method: tier.method === 'per_call' ? 'per_call' : 'per_second',
-      price: normalizeSeedancePrice(tier.price),
-      fallback: index === tiers.length - 1,
-    })),
+        method: tier.method === 'per_call' ? 'per_call' : 'per_second',
+        videoInput,
+        price: normalizeSeedancePrice(tier.price),
+        fallback,
+      }
+    }),
   }
 }
 
@@ -120,7 +130,15 @@ export function generateSeedanceExpr(
     const charge = `charge(${JSON.stringify(tier.method)}, quantity, ${formatSeedancePrice(tier.price)})`
     const body = `tier(${label}, ${charge})`
     if (tier.fallback || index === normalized.tiers.length - 1) return body
-    return `param("resolution") == ${JSON.stringify((tier.resolution || '').trim())} ? ${body}`
+    let condition = `param("resolution") == ${JSON.stringify((tier.resolution || '').trim())}`
+    if (tier.method === 'per_second') {
+      const mediaCondition =
+        tier.videoInput === 'with_video'
+          ? 'has_media("video")'
+          : '!has_media("video")'
+      condition = `${condition} && ${mediaCondition}`
+    }
+    return `${condition} ? ${body}`
   })
   return `v2:${parts.join(' : ')}`
 }
@@ -133,7 +151,7 @@ export function tryParseSeedanceExpr(
   }
   const body = exprStr.slice(3).trim()
   const branchRe = new RegExp(
-    String.raw`(?:(param\("resolution"\)\s*==\s*("(?:\\.|[^"\\])*"))\s*\?\s*)?tier\(("(?:\\.|[^"\\])*"),\s*charge\(("(?:per_second|per_call)"),\s*quantity,\s*([0-9]+(?:\.[0-9]+)?)\)\)`,
+    String.raw`(?:(param\("resolution"\)\s*==\s*("(?:\\.|[^"\\])*")(?:\s*&&\s*(!?has_media\("video"\)))?)\s*\?\s*)?tier\(("(?:\\.|[^"\\])*"),\s*charge\(("(?:per_second|per_call)"),\s*quantity,\s*([0-9]+(?:\.[0-9]+)?)\)\)`,
     'g'
   )
   const tiers: SeedanceTier[] = []
@@ -148,18 +166,35 @@ export function tryParseSeedanceExpr(
     }
     const hasCondition = Boolean(match[1])
     lastBranchHadCondition = hasCondition
-    const label = JSON.parse(match[3]) as string
-    const method = JSON.parse(match[4]) as SeedanceBillingMethod
-    const price = Number(match[5])
-    tiers.push({
+    const label = JSON.parse(match[4]) as string
+    const method = JSON.parse(match[5]) as SeedanceBillingMethod
+    const price = Number(match[6])
+    const mediaCondition = match[3]
+    if (mediaCondition && method !== 'per_second') return null
+    let videoInput: SeedanceVideoInput | undefined
+    if (mediaCondition === 'has_media("video")') {
+      videoInput = 'with_video'
+    } else if (mediaCondition === '!has_media("video")') {
+      videoInput = 'without_video'
+    }
+    const tier: SeedanceTier = {
       label,
       resolution: hasCondition
         ? String(JSON.parse(match[2])).trim()
         : undefined,
       method,
       price,
+      videoInput,
       fallback: false,
-    })
+    }
+    if (hasCondition && method === 'per_second' && !mediaCondition) {
+      tiers.push(
+        { ...tier, videoInput: 'without_video' },
+        { ...tier, videoInput: 'with_video' }
+      )
+    } else {
+      tiers.push(tier)
+    }
     cursor = branchRe.lastIndex
   }
   if (

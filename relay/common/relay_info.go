@@ -831,15 +831,32 @@ type TaskRelayInfo struct {
 type TaskSubmitReq struct {
 	Prompt         string                 `json:"prompt"`
 	Model          string                 `json:"model,omitempty"`
+	Content        []TaskContentItem      `json:"content,omitempty"`
 	Mode           string                 `json:"mode,omitempty"`
 	Image          string                 `json:"image,omitempty"`
 	Images         []string               `json:"images,omitempty"`
 	Size           string                 `json:"size,omitempty"`
 	Resolution     string                 `json:"resolution,omitempty"`
+	Ratio          string                 `json:"ratio,omitempty"`
 	Duration       int                    `json:"duration,omitempty"`
 	Seconds        string                 `json:"seconds,omitempty"`
+	GenerateAudio  *bool                  `json:"generate_audio,omitempty"`
+	Watermark      *bool                  `json:"watermark,omitempty"`
 	InputReference string                 `json:"input_reference,omitempty"`
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+}
+
+type TaskContentItem struct {
+	Type     string        `json:"type,omitempty"`
+	Text     string        `json:"text,omitempty"`
+	ImageURL *TaskMediaURL `json:"image_url,omitempty"`
+	VideoURL *TaskMediaURL `json:"video_url,omitempty"`
+	AudioURL *TaskMediaURL `json:"audio_url,omitempty"`
+	Role     string        `json:"role,omitempty"`
+}
+
+type TaskMediaURL struct {
+	URL string `json:"url,omitempty"`
 }
 
 func (t *TaskSubmitReq) GetPrompt() string {

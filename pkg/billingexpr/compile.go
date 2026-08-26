@@ -39,7 +39,7 @@ func IsV2VideoExpr(exprStr string) bool {
 	}
 	return strings.Contains(body, "quantity") &&
 		strings.Contains(body, "charge(") &&
-		strings.Contains(body, `param("resolution")`)
+		strings.Contains(body, "tier(")
 }
 
 type cachedEntry struct {
@@ -84,12 +84,13 @@ var compileEnvPrototypeV1 = map[string]interface{}{
 // compileEnvPrototypeV2 keeps the v1 token environment for compatibility and
 // adds the request-duration semantics used by video pricing expressions.
 var compileEnvPrototypeV2 = func() map[string]interface{} {
-	env := make(map[string]interface{}, len(compileEnvPrototypeV1)+2)
+	env := make(map[string]interface{}, len(compileEnvPrototypeV1)+3)
 	for key, value := range compileEnvPrototypeV1 {
 		env[key] = value
 	}
 	env["quantity"] = float64(0)
 	env["charge"] = func(string, float64, float64) (float64, error) { return 0, nil }
+	env["has_media"] = func(string) bool { return false }
 	return env
 }()
 

@@ -110,6 +110,12 @@ func runProgram(prog *vm.Program, params TokenParams, request RequestInput, vers
 			}
 			return strings.Contains(fmt.Sprint(source), substr)
 		},
+		"has_media": func(mediaType string) bool {
+			if version != 2 {
+				return false
+			}
+			return RequestHasMedia(request.Body, mediaType)
+		},
 		"hour":    func(tz string) int { return timeInZone(tz).Hour() },
 		"minute":  func(tz string) int { return timeInZone(tz).Minute() },
 		"weekday": func(tz string) int { return int(timeInZone(tz).Weekday()) },
@@ -137,6 +143,30 @@ func runProgram(prog *vm.Program, params TokenParams, request RequestInput, vers
 		return 0, trace, fmt.Errorf("v2 expr result cannot be negative")
 	}
 	return f, trace, nil
+}
+
+// RequestHasMedia reports whether top-level content contains a usable media
+// entry. Seedance video-input billing intentionally requires a non-empty URL;
+// merely sending an empty video_url object must not select the video tier.
+func RequestHasMedia(body []byte, mediaType string) bool {
+	mediaType = strings.TrimSpace(mediaType)
+	if len(body) == 0 || mediaType != "video" {
+		return false
+	}
+	content := gjson.GetBytes(body, "content")
+	if !content.IsArray() {
+		return false
+	}
+	for _, item := range content.Array() {
+		itemType := strings.TrimSpace(item.Get("type").String())
+		if itemType != "" && itemType != "video_url" {
+			continue
+		}
+		if strings.TrimSpace(item.Get("video_url.url").String()) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func timeInZone(tz string) time.Time {

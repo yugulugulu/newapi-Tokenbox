@@ -140,3 +140,34 @@ func TestTaskDurationBounds(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateBasicTaskRequestAcceptsDoubaoTopLevelContent(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	body := `{
+		"model":"doubao-seedance-2-0-260128",
+		"content":[{"type":"text","text":"generate a video"}],
+		"resolution":"720p",
+		"duration":5,
+		"generate_audio":false,
+		"watermark":false
+	}`
+	request := httptest.NewRequest(http.MethodPost, "/v1/video/generations", strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	context, _ := gin.CreateTestContext(httptest.NewRecorder())
+	context.Request = request
+	info := &RelayInfo{
+		ChannelMeta:   &ChannelMeta{ChannelType: constant.ChannelTypeDoubaoVideo},
+		TaskRelayInfo: &TaskRelayInfo{},
+	}
+
+	taskErr := ValidateBasicTaskRequest(context, info, constant.TaskActionGenerate)
+	require.Nil(t, taskErr)
+	req, err := GetTaskRequest(context)
+	require.NoError(t, err)
+	require.Len(t, req.Content, 1)
+	assert.Equal(t, "generate a video", req.Content[0].Text)
+	require.NotNil(t, req.GenerateAudio)
+	require.NotNil(t, req.Watermark)
+	assert.False(t, *req.GenerateAudio)
+	assert.False(t, *req.Watermark)
+}

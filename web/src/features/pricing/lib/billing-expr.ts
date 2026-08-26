@@ -240,6 +240,8 @@ export type ParsedTier = {
   /** v2 task pricing metadata (for example per_second video billing). */
   billing_method?: 'per_second' | 'per_call'
   unit_price?: number
+  resolution?: string
+  video_input?: 'with_video' | 'without_video'
   [field: string]: unknown
 }
 
@@ -279,7 +281,7 @@ export function parseTiersFromExpr(exprStr: string): ParsedTier[] {
     // as a legacy per-call model_price.
     if (body.includes('charge(')) {
       const taskTierRe = new RegExp(
-        String.raw`(?:(param\("resolution"\)\s*==\s*("(?:\\.|[^"\\])*")\s*\?\s*)?tier\("((?:\\.|[^"\\])*)",\s*charge\("(per_second|per_call)",\s*quantity,\s*([0-9]+(?:\.[0-9]+)?)\))`,
+        String.raw`(?:(param\("resolution"\)\s*==\s*("(?:\\.|[^"\\])*")(?:\s*&&\s*(!?has_media\("video"\)))?)\s*\?\s*)?tier\(("(?:\\.|[^"\\])*")\s*,\s*charge\(("(?:per_second|per_call)")\s*,\s*quantity,\s*([0-9]+(?:\.[0-9]+)?)\)\)`,
         'g'
       )
       const taskTiers: ParsedTier[] = []
@@ -287,13 +289,20 @@ export function parseTiersFromExpr(exprStr: string): ParsedTier[] {
       while ((taskMatch = taskTierRe.exec(body)) !== null) {
         const hasResolution = Boolean(taskMatch[1])
         const tier: ParsedTier = {
-          label: JSON.parse(`"${taskMatch[3]}"`) as string,
+          label: JSON.parse(taskMatch[4]) as string,
           conditions: [],
-          billing_method: taskMatch[4] as ParsedTier['billing_method'],
-          unit_price: Number(taskMatch[5]),
+          billing_method: JSON.parse(
+            taskMatch[5]
+          ) as ParsedTier['billing_method'],
+          unit_price: Number(taskMatch[6]),
         }
         if (hasResolution) {
           tier.resolution = JSON.parse(taskMatch[2]) as string
+        }
+        if (taskMatch[3] === 'has_media("video")') {
+          tier.video_input = 'with_video'
+        } else if (taskMatch[3] === '!has_media("video")') {
+          tier.video_input = 'without_video'
         }
         taskTiers.push(tier)
       }

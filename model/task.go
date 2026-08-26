@@ -126,6 +126,7 @@ type TaskBillingContext struct {
 	ExprVersion     int                `json:"expr_version,omitempty"`
 	BillingMethod   string             `json:"billing_method,omitempty"`
 	Resolution      string             `json:"resolution,omitempty"`
+	HasVideoInput   bool               `json:"has_video_input,omitempty"`
 	Quantity        float64            `json:"quantity,omitempty"`
 	EstimatedTier   string             `json:"estimated_tier,omitempty"`
 	TaskCount       int                `json:"task_count"`
