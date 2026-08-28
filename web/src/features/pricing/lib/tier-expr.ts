@@ -57,6 +57,7 @@ export type SeedanceTier = {
   method: SeedanceBillingMethod
   videoInput?: SeedanceVideoInput
   price: number
+  videoInputPrice?: number
   fallback: boolean
 }
 
@@ -92,7 +93,7 @@ export function normalizeSeedanceConfig(
         videoInput =
           tier.videoInput === 'with_video' ? 'with_video' : 'without_video'
       }
-      return {
+      const normalizedTier: SeedanceTier = {
         label: String(tier.label ?? ''),
         resolution: fallback
           ? undefined
@@ -102,6 +103,16 @@ export function normalizeSeedanceConfig(
         price: normalizeSeedancePrice(tier.price),
         fallback,
       }
+      if (
+        tier.videoInputPrice !== undefined &&
+        tier.method !== 'per_call' &&
+        (fallback || videoInput === 'with_video')
+      ) {
+        normalizedTier.videoInputPrice = normalizeSeedancePrice(
+          tier.videoInputPrice
+        )
+      }
+      return normalizedTier
     }),
   }
 }
@@ -114,7 +125,13 @@ function formatSeedancePrice(value: number): string {
 export function createDefaultSeedanceConfig(): SeedanceConfig {
   return normalizeSeedanceConfig({
     tiers: [
-      { label: 'fallback', method: 'per_second', price: 0, fallback: true },
+      {
+        label: 'fallback',
+        method: 'per_second',
+        price: 0,
+        videoInputPrice: 0,
+        fallback: true,
+      },
     ],
   })
 }
@@ -127,7 +144,14 @@ export function generateSeedanceExpr(
     const label = JSON.stringify(
       tier.label || (tier.fallback ? 'fallback' : `tier_${index + 1}`)
     )
-    const charge = `charge(${JSON.stringify(tier.method)}, quantity, ${formatSeedancePrice(tier.price)})`
+    let charge = `charge(${JSON.stringify(tier.method)}, quantity, ${formatSeedancePrice(tier.price)})`
+    if (
+      tier.method === 'per_second' &&
+      (tier.fallback || tier.videoInput === 'with_video') &&
+      tier.videoInputPrice !== undefined
+    ) {
+      charge += ` + charge("per_second", video_input_durations, ${formatSeedancePrice(tier.videoInputPrice)})`
+    }
     const body = `tier(${label}, ${charge})`
     if (tier.fallback || index === normalized.tiers.length - 1) return body
     let condition = `param("resolution") == ${JSON.stringify((tier.resolution || '').trim())}`
@@ -151,7 +175,7 @@ export function tryParseSeedanceExpr(
   }
   const body = exprStr.slice(3).trim()
   const branchRe = new RegExp(
-    String.raw`(?:(param\("resolution"\)\s*==\s*("(?:\\.|[^"\\])*")(?:\s*&&\s*(!?has_media\("video"\)))?)\s*\?\s*)?tier\(("(?:\\.|[^"\\])*"),\s*charge\(("(?:per_second|per_call)"),\s*quantity,\s*([0-9]+(?:\.[0-9]+)?)\)\)`,
+    String.raw`(?:(param\("resolution"\)\s*==\s*("(?:\\.|[^"\\])*")(?:\s*&&\s*(!?has_media\("video"\)))?)\s*\?\s*)?tier\(("(?:\\.|[^"\\])*"),\s*charge\(("(?:per_second|per_call)"),\s*quantity,\s*([0-9]+(?:\.[0-9]+)?)\)(?:\s*\+\s*charge\("per_second",\s*video_input_durations,\s*([0-9]+(?:\.[0-9]+)?)\))?\)`,
     'g'
   )
   const tiers: SeedanceTier[] = []
@@ -169,8 +193,16 @@ export function tryParseSeedanceExpr(
     const label = JSON.parse(match[4]) as string
     const method = JSON.parse(match[5]) as SeedanceBillingMethod
     const price = Number(match[6])
+    const videoInputPrice = match[7] === undefined ? undefined : Number(match[7])
     const mediaCondition = match[3]
     if (mediaCondition && method !== 'per_second') return null
+    if (videoInputPrice !== undefined && method !== 'per_second') return null
+    if (
+      videoInputPrice !== undefined &&
+      mediaCondition === '!has_media("video")'
+    ) {
+      return null
+    }
     let videoInput: SeedanceVideoInput | undefined
     if (mediaCondition === 'has_media("video")') {
       videoInput = 'with_video'
@@ -186,6 +218,9 @@ export function tryParseSeedanceExpr(
       price,
       videoInput,
       fallback: false,
+    }
+    if (videoInputPrice !== undefined) {
+      tier.videoInputPrice = videoInputPrice
     }
     if (hasCondition && method === 'per_second' && !mediaCondition) {
       tiers.push(
@@ -405,7 +440,7 @@ export function tryParseVisualConfig(
 
     const cfg = normalizeVisualConfig({ tiers })
     const regenerated = generateExprFromVisualConfig(cfg)
-    if (regenerated.replace(/\s+/g, '') !== body.replace(/\s+/g, '')) {
+    if (regenerated.replaceAll(/\s+/g, '') !== body.replaceAll(/\s+/g, '')) {
       return null
     }
     return cfg

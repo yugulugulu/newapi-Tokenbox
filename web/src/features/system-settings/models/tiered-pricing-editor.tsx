@@ -344,8 +344,9 @@ function formatTokenHint(n: number | string | null | undefined): string {
 
 function formatNumberDraft(value: number | string): string {
   if (value === '') return ''
-  if (typeof value === 'number')
+  if (typeof value === 'number') {
     return Number.isFinite(value) ? String(value) : '0'
+  }
   return value
 }
 
@@ -448,12 +449,10 @@ function ConditionRow({ condition, onChange, onRemove }: ConditionRowProps) {
   return (
     <div className='flex items-center gap-2'>
       <Select
-        items={[
-          ...CONDITION_INPUT_OPTIONS.map((option) => ({
-            value: option.value,
-            label: t(option.labelKey),
-          })),
-        ]}
+        items={CONDITION_INPUT_OPTIONS.map((option) => ({
+          value: option.value,
+          label: t(option.labelKey),
+        }))}
         value={condition.var}
         onValueChange={(value) =>
           onChange({ ...condition, var: value as TierConditionInput['var'] })
@@ -679,6 +678,8 @@ function VisualTierCard({
         ) : (
           tier.conditions.map((condition, conditionIndex) => (
             <ConditionRow
+              // Visual conditions do not have stored IDs.
+              // eslint-disable-next-line react/no-array-index-key
               key={conditionIndex}
               condition={condition}
               onChange={(next) => handleConditionChange(conditionIndex, next)}
@@ -861,6 +862,8 @@ function VisualEditor({ visualConfig, onChange }: VisualEditorProps) {
       </p>
       {config.tiers.map((tier, index) => (
         <VisualTierCard
+          // Visual tiers are stored as ordered expression branches without IDs.
+          // eslint-disable-next-line react/no-array-index-key
           key={index}
           tier={tier}
           index={index}
@@ -979,12 +982,12 @@ function RuleConditionRow({
         return timeFunc
     }
   }
-  const sourceLabel =
-    condition.source === SOURCE_PARAM
-      ? t('Body param')
-      : condition.source === SOURCE_HEADER
-        ? t('Header')
-        : t('Time')
+  let sourceLabel = t('Time')
+  if (condition.source === SOURCE_PARAM) {
+    sourceLabel = t('Body param')
+  } else if (condition.source === SOURCE_HEADER) {
+    sourceLabel = t('Header')
+  }
 
   const handleSourceChange = (source: string) => {
     if (source === SOURCE_TIME) {
@@ -1004,12 +1007,10 @@ function RuleConditionRow({
   const renderTimeCondition = (timeCond: TimeCondition) => (
     <>
       <Select
-        items={[
-          ...TIME_FUNCS.map((fn) => ({
-            value: fn,
-            label: getTimeFuncLabel(fn),
-          })),
-        ]}
+        items={TIME_FUNCS.map((fn) => ({
+          value: fn,
+          label: getTimeFuncLabel(fn),
+        }))}
         value={timeCond.timeFunc}
         onValueChange={(value) =>
           onChange({ ...timeCond, timeFunc: value as TimeFunc })
@@ -1029,12 +1030,10 @@ function RuleConditionRow({
         </SelectContent>
       </Select>
       <Select
-        items={[
-          ...COMMON_TIMEZONES.map((tz) => ({
-            value: tz.value,
-            label: tz.label,
-          })),
-        ]}
+        items={COMMON_TIMEZONES.map((tz) => ({
+          value: tz.value,
+          label: tz.label,
+        }))}
         value={timeCond.timezone}
         onValueChange={(value) =>
           value !== null && onChange({ ...timeCond, timezone: value })
@@ -1057,12 +1056,10 @@ function RuleConditionRow({
         </SelectContent>
       </Select>
       <Select
-        items={[
-          ...matchOptions.map((option) => ({
-            value: option.value,
-            label: getMatchLabel(option.value),
-          })),
-        ]}
+        items={matchOptions.map((option) => ({
+          value: option.value,
+          label: getMatchLabel(option.value),
+        }))}
         value={timeCond.mode}
         onValueChange={(v) => v !== null && handleModeChange(v)}
       >
@@ -1123,12 +1120,10 @@ function RuleConditionRow({
         className='w-44'
       />
       <Select
-        items={[
-          ...matchOptions.map((option) => ({
-            value: option.value,
-            label: getMatchLabel(option.value),
-          })),
-        ]}
+        items={matchOptions.map((option) => ({
+          value: option.value,
+          label: getMatchLabel(option.value),
+        }))}
         value={phCond.mode}
         onValueChange={(v) => v !== null && handleModeChange(v)}
       >
@@ -1253,6 +1248,8 @@ function RuleGroupCard({
       <div className='space-y-2'>
         {group.conditions.map((condition, conditionIndex) => (
           <RuleConditionRow
+            // Request-rule conditions are ordered expression nodes without IDs.
+            // eslint-disable-next-line react/no-array-index-key
             key={conditionIndex}
             condition={condition}
             onChange={(next) => handleConditionChange(conditionIndex, next)}
@@ -1671,6 +1668,7 @@ function SeedanceEditor({ config, onChange }: SeedanceEditorProps) {
       method: 'per_second',
       videoInput: 'without_video',
       price: 0,
+      videoInputPrice: 0,
       fallback: true,
     })
     onChange({ tiers })
@@ -1703,6 +1701,19 @@ function SeedanceEditor({ config, onChange }: SeedanceEditorProps) {
           previewLabel = t('With video input')
         } else if (!fallback) {
           previewLabel = t('Without video input')
+        }
+        let previewText = `${previewLabel}: ${tier.price} / ${t('Per second')}`
+        if (tier.method === 'per_call') {
+          previewText = t('Preview: {{price}} per call', { price: tier.price })
+        } else if (fallback || tier.videoInput === 'with_video') {
+          previewText = t(
+            '{{label}}: output {{outputPrice}} per second + input video {{inputPrice}} per second',
+            {
+              label: previewLabel,
+              outputPrice: tier.price,
+              inputPrice: tier.videoInputPrice ?? 0,
+            }
+          )
         }
         return (
           <div
@@ -1824,11 +1835,30 @@ function SeedanceEditor({ config, onChange }: SeedanceEditorProps) {
                   }}
                 />
               </Field>
+              {tier.method === 'per_second' &&
+                (fallback || tier.videoInput === 'with_video') && (
+                  <Field className='gap-2'>
+                    <FieldLabel>{t('Input video price per second')}</FieldLabel>
+                    <Input
+                      type='number'
+                      min={0}
+                      step='0.000001'
+                      value={tier.videoInputPrice ?? 0}
+                      onChange={(event) => {
+                        const value = Number(event.target.value)
+                        updateTier(index, {
+                          videoInputPrice: Number.isFinite(value)
+                            ? Math.round(Math.max(0, value) * 1_000_000) /
+                              1_000_000
+                            : 0,
+                        })
+                      }}
+                    />
+                  </Field>
+                )}
             </div>
             <p className='text-muted-foreground text-xs'>
-              {tier.method === 'per_second'
-                ? `${previewLabel}: ${tier.price} / ${t('Per second')}`
-                : t('Preview: {{price}} per call', { price: tier.price })}
+              {previewText}
             </p>
           </div>
         )
@@ -2100,6 +2130,8 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
               <>
                 {requestRuleGroups.map((group, groupIndex) => (
                   <RuleGroupCard
+                    // Parsed request-rule groups do not have persistent IDs.
+                    // eslint-disable-next-line react/no-array-index-key
                     key={groupIndex}
                     group={group}
                     index={groupIndex}

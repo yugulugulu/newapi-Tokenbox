@@ -85,6 +85,11 @@ const TIME_FUNC_LABELS: Record<string, string> = {
   day: 'Day',
 }
 
+const TASK_PRICING_FIELDS = [
+  { field: 'unit_price', shortLabel: 'Output unit price' },
+  { field: 'video_input_unit_price', shortLabel: 'Input video unit price' },
+] as const
+
 function formatTokenHint(value: string | number): string {
   const n = Number(value)
   if (!Number.isFinite(n) || n === 0) return ''
@@ -222,9 +227,12 @@ export function DynamicPricingBreakdown({
     )
   }
 
-  const visiblePriceFields = BILLING_PRICING_VARS.filter((v) => {
+  const visiblePriceFields = [
+    ...BILLING_PRICING_VARS,
+    ...TASK_PRICING_FIELDS,
+  ].filter((v) => {
     if (!hasTiers) return false
-    if (hideCacheColumns && v.group === 'cache') return false
+    if (hideCacheColumns && 'group' in v && v.group === 'cache') return false
     return tiers.some(
       (tier) => Number(tier[v.field as string as keyof ParsedTier] || 0) > 0
     )
@@ -268,6 +276,8 @@ export function DynamicPricingBreakdown({
                 tier.label === matchedTierLabel
               return (
                 <div
+                  // The parsed expression has no persistent tier identifier.
+                  // eslint-disable-next-line react/no-array-index-key
                   key={`tier-mobile-${i}`}
                   className={cn(
                     'rounded-md border p-2',
@@ -427,6 +437,8 @@ export function DynamicPricingBreakdown({
           <ul className='space-y-1.5'>
             {ruleGroups.map((group, gi) => (
               <li
+                // Parsed request-rule groups do not carry persistent IDs.
+                // eslint-disable-next-line react/no-array-index-key
                 key={`group-${gi}`}
                 className='bg-muted/50 flex items-center justify-between gap-3 rounded-md px-3 py-2'
               >

@@ -181,7 +181,12 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 	info.OriginModelName = modelName
 	priceData, handledV2, err := helper.PrepareTaskV2Billing(c, info)
 	if err != nil {
-		return nil, service.TaskErrorWrapperLocal(err, "model_price_error", http.StatusBadRequest)
+		statusCode := http.StatusBadRequest
+		var probeErr *service.VideoInputProbeError
+		if errors.As(err, &probeErr) {
+			statusCode = probeErr.StatusCode
+		}
+		return nil, service.TaskErrorWrapperLocal(err, "model_price_error", statusCode)
 	}
 	if !handledV2 {
 		priceData, err = helper.ModelPriceHelperPerCall(c, info)

@@ -1,6 +1,7 @@
 package billingexpr_test
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -1073,6 +1074,45 @@ func TestV2VideoChargeByVideoInput(t *testing.T) {
 	}
 }
 
+func TestV2VideoChargeIncludesInputVideoDuration(t *testing.T) {
+	expr := `v2:tier("video", charge("per_second", quantity, 0.31) + charge("per_second", video_input_durations, 0.12))`
+
+	cost, trace, err := billingexpr.RunExpr(expr, billingexpr.TokenParams{
+		Quantity:            5,
+		VideoInputDurations: 10,
+	})
+
+	require.NoError(t, err)
+	assert.InDelta(t, 2.75, cost, 1e-9)
+	assert.Equal(t, "video", trace.MatchedTier)
+	assert.Equal(t, "per_second", trace.BillingMethod)
+}
+
+func TestV2RejectsMixedChargeMethodsInMatchedTier(t *testing.T) {
+	expr := `v2:tier("mixed", charge("per_call", quantity, 1) + charge("per_second", video_input_durations, 0.12))`
+
+	_, _, err := billingexpr.RunExpr(expr, billingexpr.TokenParams{
+		Quantity:            5,
+		VideoInputDurations: 10,
+	})
+
+	require.ErrorContains(t, err, "mixed charge methods are not supported")
+}
+
+func TestV2VideoChargeRejectsInvalidInputVideoDuration(t *testing.T) {
+	expr := `v2:tier("video", charge("per_second", quantity, 0.31) + charge("per_second", video_input_durations, 0.12))`
+
+	for _, duration := range []float64{-1, math.NaN(), math.Inf(1)} {
+		t.Run(fmt.Sprintf("duration_%v", duration), func(t *testing.T) {
+			_, _, err := billingexpr.RunExpr(expr, billingexpr.TokenParams{
+				Quantity:            5,
+				VideoInputDurations: duration,
+			})
+			require.Error(t, err)
+		})
+	}
+}
+
 func TestV2VideoPriceWithinSingleResolutionTier(t *testing.T) {
 	expr := `v2:param("resolution") == "720p" ? tier("720p", charge("per_second", quantity, has_media("video") ? 0.31 : 0.51)) : tier("fallback", charge("per_second", quantity, 0.46))`
 	body := []byte(`{"resolution":"720p","content":[{"type":"video_url","video_url":{"url":"https://example.com/reference.mp4"}}]}`)
@@ -1095,6 +1135,11 @@ func TestIsV2VideoExprSupportsFallbackOnlyTemplate(t *testing.T) {
 	assert.False(t, billingexpr.IsV2VideoExpr(`v2:tier("base", p * 2 + c * 4)`))
 	assert.False(t, billingexpr.IsV2VideoExpr(`v2:charge("per_call", quantity, 2)`))
 	assert.False(t, billingexpr.IsV2VideoExpr(`tier("fallback", p * quantity)`))
+	assert.False(t, billingexpr.IsV2VideoExpr(`v2:tier("quantity charge(", p)`))
+	assert.False(t, billingexpr.IsV2VideoExpr(`v2:tier("base", charge("per_call", p, quantity))`))
+	assert.False(t, billingexpr.IsV2VideoExpr(`v2:tier("base", charge("per_second", p, 1) + quantity)`))
+	assert.False(t, billingexpr.IsV2VideoExpr(`v2:tier("base", charge("per_second", p, 1)) + "quantity" == "quantity" ? 1 : 0`))
+	assert.False(t, billingexpr.IsV2VideoExpr(`v2:tier(`))
 }
 
 func TestV2RejectsInvalidCharge(t *testing.T) {

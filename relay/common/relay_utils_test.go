@@ -1,17 +1,48 @@
 package common
 
 import (
+	"bytes"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
 
+	rootcommon "github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func newMultipartTaskContext(t *testing.T, fields map[string]string) (*gin.Context, *RelayInfo) {
+	t.Helper()
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	for key, value := range fields {
+		require.NoError(t, writer.WriteField(key, value))
+	}
+	require.NoError(t, writer.Close())
+
+	request := httptest.NewRequest(http.MethodPost, "/v1/video/generations", bytes.NewReader(body.Bytes()))
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	context, _ := gin.CreateTestContext(httptest.NewRecorder())
+	context.Request = request
+
+	// Production request distribution caches the body before task validation.
+	// Mirror that path so MultipartForm and UnmarshalBodyReusable can both read it.
+	storage, err := rootcommon.GetBodyStorage(context)
+	require.NoError(t, err)
+	context.Request.Body = io.NopCloser(storage)
+
+	return context, &RelayInfo{
+		ChannelMeta:   &ChannelMeta{ChannelType: constant.ChannelTypeDoubaoVideo},
+		TaskRelayInfo: &TaskRelayInfo{},
+	}
+}
 
 func TestSanitizeURLForLogMasksSensitiveQueryValues(t *testing.T) {
 	rawURL := "https://example.test/v1beta/models/gemini:streamGenerateContent?alt=sse&key=sk-secret&access_token=ya29-secret&api-version=2024-02-01"
@@ -170,4 +201,48 @@ func TestValidateBasicTaskRequestAcceptsDoubaoTopLevelContent(t *testing.T) {
 	require.NotNil(t, req.Watermark)
 	assert.False(t, *req.GenerateAudio)
 	assert.False(t, *req.Watermark)
+}
+
+func TestValidateBasicTaskRequestReadsMultipartTopLevelSeedanceFields(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	context, info := newMultipartTaskContext(t, map[string]string{
+		"model":      "doubao-seedance-2-0-260128",
+		"prompt":     "generate a video",
+		"resolution": "720p",
+		"duration":   "5",
+	})
+
+	taskErr := ValidateBasicTaskRequest(context, info, constant.TaskActionGenerate)
+	require.Nil(t, taskErr)
+	req, err := GetTaskRequest(context)
+	require.NoError(t, err)
+	assert.Equal(t, "720p", req.Resolution)
+	assert.Equal(t, 5, req.Duration)
+}
+
+func TestValidateBasicTaskRequestDoesNotPromoteMultipartMetadataToTopLevel(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	context, info := newMultipartTaskContext(t, map[string]string{
+		"model":  "doubao-seedance-2-0-260128",
+		"prompt": "generate a video",
+		"metadata": `{
+			"resolution":"1080p",
+			"duration":10,
+			"content":[{
+				"type":"video_url",
+				"video_url":{"url":"https://example.com/reference.mp4"}
+			}]
+		}`,
+	})
+
+	taskErr := ValidateBasicTaskRequest(context, info, constant.TaskActionGenerate)
+	require.Nil(t, taskErr)
+	req, err := GetTaskRequest(context)
+	require.NoError(t, err)
+	assert.Empty(t, req.Resolution)
+	assert.Zero(t, req.Duration)
+	assert.Empty(t, req.Content)
+	assert.Equal(t, "1080p", req.Metadata["resolution"])
+	assert.Equal(t, float64(10), req.Metadata["duration"])
+	require.Contains(t, req.Metadata, "content")
 }

@@ -240,6 +240,7 @@ export type ParsedTier = {
   /** v2 task pricing metadata (for example per_second video billing). */
   billing_method?: 'per_second' | 'per_call'
   unit_price?: number
+  video_input_unit_price?: number
   resolution?: string
   video_input?: 'with_video' | 'without_video'
   [field: string]: unknown
@@ -281,7 +282,7 @@ export function parseTiersFromExpr(exprStr: string): ParsedTier[] {
     // as a legacy per-call model_price.
     if (body.includes('charge(')) {
       const taskTierRe = new RegExp(
-        String.raw`(?:(param\("resolution"\)\s*==\s*("(?:\\.|[^"\\])*")(?:\s*&&\s*(!?has_media\("video"\)))?)\s*\?\s*)?tier\(("(?:\\.|[^"\\])*")\s*,\s*charge\(("(?:per_second|per_call)")\s*,\s*quantity,\s*([0-9]+(?:\.[0-9]+)?)\)\)`,
+        String.raw`(?:(param\("resolution"\)\s*==\s*("(?:\\.|[^"\\])*")(?:\s*&&\s*(!?has_media\("video"\)))?)\s*\?\s*)?tier\(("(?:\\.|[^"\\])*")\s*,\s*charge\(("(?:per_second|per_call)")\s*,\s*quantity,\s*([0-9]+(?:\.[0-9]+)?)\)(?:\s*\+\s*charge\("per_second",\s*video_input_durations,\s*([0-9]+(?:\.[0-9]+)?)\))?\)`,
         'g'
       )
       const taskTiers: ParsedTier[] = []
@@ -295,6 +296,9 @@ export function parseTiersFromExpr(exprStr: string): ParsedTier[] {
             taskMatch[5]
           ) as ParsedTier['billing_method'],
           unit_price: Number(taskMatch[6]),
+        }
+        if (taskMatch[7] !== undefined) {
+          tier.video_input_unit_price = Number(taskMatch[7])
         }
         if (hasResolution) {
           tier.resolution = JSON.parse(taskMatch[2]) as string
@@ -347,9 +351,9 @@ export function parseTiersFromExpr(exprStr: string): ParsedTier[] {
 export function normalizeTierLabel(label: string | undefined): string {
   if (!label) return ''
   return label
-    .replace(/<[=＝]?|≤|＜[=＝]?/g, '<')
-    .replace(/>[=＝]?|≥|＞[=＝]?/g, '>')
-    .replace(/\s+/g, '')
+    .replaceAll(/<[=＝]?|≤|＜[=＝]?/g, '<')
+    .replaceAll(/>[=＝]?|≥|＞[=＝]?/g, '>')
+    .replaceAll(/\s+/g, '')
     .toLowerCase()
 }
 
@@ -466,24 +470,26 @@ function tryParseRequestCondition(expr: string): RequestCondition | null {
   if (m) return { source: 'param', path: m[1], mode: MATCH_EXISTS, value: '' }
 
   m = expr.match(/^has\(header\("([^"]+)"\), ((?:"(?:[^"\\]|\\.)*"))\)$/)
-  if (m)
+  if (m) {
     return {
       source: 'header',
       path: m[1],
       mode: MATCH_CONTAINS,
       value: JSON.parse(m[2]) as string,
     }
+  }
 
   m = expr.match(
     /^param\("([^"]+)"\) != nil && has\(param\("([^"]+)"\), ((?:"(?:[^"\\]|\\.)*"))\)$/
   )
-  if (m && m[1] === m[2])
+  if (m && m[1] === m[2]) {
     return {
       source: 'param',
       path: m[1],
       mode: MATCH_CONTAINS,
       value: JSON.parse(m[3]) as string,
     }
+  }
 
   m = expr.match(
     /^param\("([^"]+)"\) != nil && param\("([^"]+)"\) (>|>=|<|<=) ([\d.eE+-]+)$/
@@ -682,12 +688,12 @@ function isTimeFunc(value: unknown): value is TimeFunc {
 export function normalizeCondition(
   cond: Partial<RequestCondition> | null | undefined
 ): RequestCondition {
-  const source =
-    cond?.source === 'time'
-      ? 'time'
-      : cond?.source === 'header'
-        ? 'header'
-        : 'param'
+  let source: RequestCondition['source'] = 'param'
+  if (cond?.source === 'time') {
+    source = 'time'
+  } else if (cond?.source === 'header') {
+    source = 'header'
+  }
 
   if (source === 'time') {
     const timeCond = cond as Partial<TimeCondition> | null | undefined

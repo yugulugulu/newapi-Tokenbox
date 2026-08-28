@@ -46,6 +46,13 @@ Powered by [expr-lang/expr](https://github.com/expr-lang/expr). Expressions are 
 | `img_o` | 图片输出 token 数 |
 | `ao` | 音频输出 token 数 |
 
+**v2 视频任务变量：**
+
+| 变量 | 含义 |
+|------|------|
+| `quantity` | 输出视频时长，读取顶层 `duration` |
+| `video_input_durations` | 顶层 `content[].video_url.url` 输入视频的总时长，汇总后向上取整，最大 31 秒 |
+
 #### `p` 和 `c` 的自动排除机制
 
 `p` 和 `c` 是"兜底变量"——它们代表**所有没有被表达式单独定价的 token**。系统会根据表达式实际使用了哪些变量，自动从 `p` / `c` 中减去对应的子类别 token，避免重复计费。

@@ -33,13 +33,42 @@ func ParseExprVersion(exprStr string) (version int, body string) {
 // deliberately stricter than a version check so unrelated v2 expressions do
 // not enter the video request path and accidentally change their billing.
 func IsV2VideoExpr(exprStr string) bool {
-	version, body := ParseExprVersion(exprStr)
+	version, _ := ParseExprVersion(exprStr)
 	if version != 2 {
 		return false
 	}
-	return strings.Contains(body, "quantity") &&
-		strings.Contains(body, "charge(") &&
-		strings.Contains(body, "tier(")
+	prog, err := CompileFromCache(exprStr)
+	if err != nil {
+		return false
+	}
+
+	hasTier := false
+	hasQuantityCharge := false
+	ast.Find(prog.Node(), func(n ast.Node) bool {
+		call, ok := n.(*ast.CallNode)
+		if !ok {
+			return false
+		}
+		callee, ok := call.Callee.(*ast.IdentifierNode)
+		if !ok {
+			return false
+		}
+		if callee.Value == "tier" {
+			hasTier = true
+		}
+		if callee.Value != "charge" || len(call.Arguments) < 2 {
+			return false
+		}
+		if hasQuantityCharge {
+			return false
+		}
+		hasQuantityCharge = ast.Find(call.Arguments[1], func(argument ast.Node) bool {
+			identifier, ok := argument.(*ast.IdentifierNode)
+			return ok && identifier.Value == "quantity"
+		}) != nil
+		return false
+	})
+	return hasTier && hasQuantityCharge
 }
 
 type cachedEntry struct {
@@ -84,11 +113,12 @@ var compileEnvPrototypeV1 = map[string]interface{}{
 // compileEnvPrototypeV2 keeps the v1 token environment for compatibility and
 // adds the request-duration semantics used by video pricing expressions.
 var compileEnvPrototypeV2 = func() map[string]interface{} {
-	env := make(map[string]interface{}, len(compileEnvPrototypeV1)+3)
+	env := make(map[string]interface{}, len(compileEnvPrototypeV1)+4)
 	for key, value := range compileEnvPrototypeV1 {
 		env[key] = value
 	}
 	env["quantity"] = float64(0)
+	env["video_input_durations"] = float64(0)
 	env["charge"] = func(string, float64, float64) (float64, error) { return 0, nil }
 	env["has_media"] = func(string) bool { return false }
 	return env

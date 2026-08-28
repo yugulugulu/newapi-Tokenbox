@@ -5266,6 +5266,13 @@
     "Zero retention": "Không lưu dữ liệu",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "{{label}}: output {{outputPrice}} per second + input video {{inputPrice}} per second": "{{label}}: đầu ra {{outputPrice}} mỗi giây + video đầu vào {{inputPrice}} mỗi giây",
+    "Input video": "Video đầu vào",
+    "Input video count": "Số lượng video đầu vào",
+    "Input video duration": "Thời lượng video đầu vào",
+    "Input video price per second": "Giá video đầu vào mỗi giây",
+    "Input video unit price": "Đơn giá video đầu vào",
+    "Output unit price": "Đơn giá đầu ra"
   }
 }
