@@ -294,7 +294,10 @@ export interface TieredBillingSummary {
   priceEntries: Array<{ field: string; shortLabel: string; price: number }>
   billingMethod?: 'per_second' | 'per_call'
   unitPrice?: number
+  videoInputUnitPrice?: number
   quantity?: number
+  videoInputDurations?: number
+  videoInputCount?: number
 }
 
 /**
@@ -342,6 +345,7 @@ export function getTieredBillingSummary(
   }
   const billingMethod = tier.billing_method
   const unitPrice = Number(tier.unit_price)
+  const videoInputUnitPrice = Number(tier.video_input_unit_price)
   return {
     tiers,
     tier,
@@ -349,7 +353,13 @@ export function getTieredBillingSummary(
     billingMethod,
     unitPrice:
       Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : undefined,
+    videoInputUnitPrice:
+      Number.isFinite(videoInputUnitPrice) && videoInputUnitPrice > 0
+        ? videoInputUnitPrice
+        : undefined,
     quantity: other.quantity,
+    videoInputDurations: other.video_input_durations,
+    videoInputCount: other.video_input_count,
   }
 }
 

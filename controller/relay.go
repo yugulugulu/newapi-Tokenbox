@@ -683,6 +683,8 @@ func RelayTask(c *gin.Context) {
 			billingContext.Resolution = snapshot.Resolution
 			billingContext.HasVideoInput = snapshot.HasVideoInput
 			billingContext.Quantity = snapshot.Quantity
+			billingContext.VideoInputDurations = snapshot.VideoInputDurations
+			billingContext.VideoInputCount = snapshot.VideoInputCount
 			billingContext.EstimatedTier = snapshot.EstimatedTier
 			billingContext.TaskCount = snapshot.TaskCount
 			if billingContext.TaskCount <= 0 {

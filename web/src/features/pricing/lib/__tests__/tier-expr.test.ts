@@ -63,6 +63,7 @@ describe('Seedance v2 tier expression editor helpers', () => {
           method: 'per_second',
           videoInput: 'with_video',
           price: 0.470001,
+          videoInputPrice: 0.120001,
           fallback: false,
         },
         {
@@ -78,6 +79,10 @@ describe('Seedance v2 tier expression editor helpers', () => {
     assert.match(expr, /&& !has_media\("video"\)/)
     assert.match(expr, /&& has_media\("video"\)/)
     assert.match(expr, /charge\("per_second", quantity, 0\.470001\)/)
+    assert.match(
+      expr,
+      /charge\("per_second", video_input_durations, 0\.120001\)/
+    )
     assert.deepEqual(
       tryParseSeedanceExpr(expr),
       normalizeSeedanceConfig(config)
@@ -147,6 +152,27 @@ describe('Seedance v2 tier expression editor helpers', () => {
     assert.deepEqual(tryParseSeedanceExpr(expr), config)
   })
 
+  test('generates and parses input video duration pricing for fallback', () => {
+    const config = normalizeSeedanceConfig({
+      tiers: [
+        {
+          label: 'fallback',
+          method: 'per_second',
+          price: 0.46,
+          videoInputPrice: 0.12,
+          fallback: true,
+        },
+      ],
+    })
+
+    const expr = generateSeedanceExpr(config)
+    assert.equal(
+      expr,
+      'v2:tier("fallback", charge("per_second", quantity, 0.46) + charge("per_second", video_input_durations, 0.12))'
+    )
+    assert.deepEqual(tryParseSeedanceExpr(expr), config)
+  })
+
   test('rejects v1 and unrelated v2 expressions', () => {
     assert.equal(tryParseSeedanceExpr('tier("base", p * 2)'), null)
     assert.equal(tryParseSeedanceExpr('v2:tier("base", p * 2)'), null)
@@ -160,7 +186,7 @@ describe('Seedance v2 tier expression editor helpers', () => {
 
   test('exposes video-input conditions in pricing details', () => {
     const expr =
-      'v2:param("resolution") == "720p" && !has_media("video") ? tier("720p_no_video", charge("per_second", quantity, 0.51)) : param("resolution") == "720p" && has_media("video") ? tier("720p_video", charge("per_second", quantity, 0.31)) : tier("fallback", charge("per_second", quantity, 0.46))'
+      'v2:param("resolution") == "720p" && !has_media("video") ? tier("720p_no_video", charge("per_second", quantity, 0.51)) : param("resolution") == "720p" && has_media("video") ? tier("720p_video", charge("per_second", quantity, 0.31) + charge("per_second", video_input_durations, 0.12)) : tier("fallback", charge("per_second", quantity, 0.46) + charge("per_second", video_input_durations, 0.1))'
 
     assert.deepEqual(parseTiersFromExpr(expr), [
       {
@@ -176,6 +202,7 @@ describe('Seedance v2 tier expression editor helpers', () => {
         conditions: [],
         billing_method: 'per_second',
         unit_price: 0.31,
+        video_input_unit_price: 0.12,
         resolution: '720p',
         video_input: 'with_video',
       },
@@ -184,6 +211,7 @@ describe('Seedance v2 tier expression editor helpers', () => {
         conditions: [],
         billing_method: 'per_second',
         unit_price: 0.46,
+        video_input_unit_price: 0.1,
       },
     ])
   })

@@ -1,18 +1,24 @@
 package helper
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/billing_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	hosttypes "github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
 )
+
+var probeTaskVideoInputDurations = func(ctx context.Context, videoURLs []string) (float64, error) {
+	return service.ProbeVideoInputDurations(ctx, videoURLs)
+}
 
 // PrepareTaskV2Billing evaluates a v2 task expression at submission time.
 // It returns handled=false for legacy/non-v2 task pricing so callers can keep
@@ -72,10 +78,11 @@ func PrepareTaskV2Billing(c *gin.Context, info *relaycommon.RelayInfo) (priceDat
 	if err != nil {
 		return hosttypes.PriceData{}, true, err
 	}
-	hasVideoInput, err := taskHasVideoInput(req)
+	videoInputURLs, err := taskVideoInputURLs(req)
 	if err != nil {
 		return hosttypes.PriceData{}, true, err
 	}
+	hasVideoInput := len(videoInputURLs) > 0
 	requestBody, err := buildTaskV2BillingRequestBody(resolution, hasVideoInput)
 	if err != nil {
 		return hosttypes.PriceData{}, true, fmt.Errorf("marshal task billing request: %w", err)
@@ -86,9 +93,22 @@ func PrepareTaskV2Billing(c *gin.Context, info *relaycommon.RelayInfo) (priceDat
 		Headers: info.RequestHeaders,
 		Body:    requestBody,
 	}
-	cost, trace, err := billingexpr.RunExprWithRequest(exprString, billingexpr.TokenParams{Quantity: float64(quantity)}, requestInput)
+	params := billingexpr.TokenParams{Quantity: float64(quantity)}
+	cost, trace, err := billingexpr.RunExprWithRequest(exprString, params, requestInput)
 	if err != nil {
 		return hosttypes.PriceData{}, true, fmt.Errorf("model %s v2 task expression failed: %w", info.OriginModelName, err)
+	}
+	videoInputDurations := float64(0)
+	if hasVideoInput && trace.BillingMethod == "per_second" && billingexpr.UsedVars(exprString)["video_input_durations"] {
+		videoInputDurations, err = probeTaskVideoInputDurations(c.Request.Context(), videoInputURLs)
+		if err != nil {
+			return hosttypes.PriceData{}, true, err
+		}
+		params.VideoInputDurations = videoInputDurations
+		cost, trace, err = billingexpr.RunExprWithRequest(exprString, params, requestInput)
+		if err != nil {
+			return hosttypes.PriceData{}, true, fmt.Errorf("model %s v2 task expression failed: %w", info.OriginModelName, err)
+		}
 	}
 	if trace.BillingMethod != "per_second" && trace.BillingMethod != "per_call" {
 		return hosttypes.PriceData{}, true, fmt.Errorf("model %s v2 task expression must use charge per_second or per_call", info.OriginModelName)
@@ -126,6 +146,8 @@ func PrepareTaskV2Billing(c *gin.Context, info *relaycommon.RelayInfo) (priceDat
 		Resolution:                resolution,
 		HasVideoInput:             hasVideoInput,
 		Quantity:                  float64(quantity),
+		VideoInputDurations:       videoInputDurations,
+		VideoInputCount:           len(videoInputURLs),
 		TaskCount:                 1,
 	}
 	info.TieredBillingSnapshot = snapshot
@@ -150,18 +172,27 @@ func normalizeTaskResolution(req relaycommon.TaskSubmitReq) (string, error) {
 }
 
 func taskHasVideoInput(req relaycommon.TaskSubmitReq) (bool, error) {
+	videoURLs, err := taskVideoInputURLs(req)
+	return len(videoURLs) > 0, err
+}
+
+func taskVideoInputURLs(req relaycommon.TaskSubmitReq) ([]string, error) {
 	if len(req.Content) == 0 && req.Metadata != nil {
 		if _, exists := req.Metadata["content"]; exists {
-			return false, fmt.Errorf("content is required at the top level for v2 video billing")
+			return nil, fmt.Errorf("content is required at the top level for v2 video billing")
 		}
 	}
-	body, err := common.Marshal(struct {
-		Content []relaycommon.TaskContentItem `json:"content,omitempty"`
-	}{Content: req.Content})
-	if err != nil {
-		return false, fmt.Errorf("marshal task content for billing: %w", err)
+	videoURLs := make([]string, 0, len(req.Content))
+	for _, item := range req.Content {
+		if item.VideoURL == nil {
+			continue
+		}
+		videoURL := strings.TrimSpace(item.VideoURL.URL)
+		if videoURL != "" {
+			videoURLs = append(videoURLs, videoURL)
+		}
 	}
-	return billingexpr.RequestHasMedia(body, "video"), nil
+	return videoURLs, nil
 }
 
 func buildTaskV2BillingRequestBody(resolution string, hasVideoInput bool) ([]byte, error) {

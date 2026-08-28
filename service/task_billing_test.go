@@ -200,15 +200,17 @@ func TestPriceDataReplaceAndApplyOtherRatios(t *testing.T) {
 func TestTaskBillingOtherIncludesTieredBillingMetadata(t *testing.T) {
 	task := makeTask(1, 1, 100, 0, BillingSourceWallet, 0)
 	task.PrivateData.BillingContext = &model.TaskBillingContext{
-		ModelPrice:    0.8,
-		GroupRatio:    0.2,
-		BillingMode:   "tiered_expr",
-		BillingExpr:   `v2:param("resolution") == "480p" ? tier("480p", charge("per_second", quantity, 0.2)) : tier("fallback", charge("per_call", quantity, 1))`,
-		BillingMethod: "per_second",
-		Resolution:    "480p",
-		Quantity:      4,
-		EstimatedTier: "480p",
-		ExprVersion:   2,
+		ModelPrice:          0.8,
+		GroupRatio:          0.2,
+		BillingMode:         "tiered_expr",
+		BillingExpr:         `v2:param("resolution") == "480p" ? tier("480p", charge("per_second", quantity, 0.2)) : tier("fallback", charge("per_call", quantity, 1))`,
+		BillingMethod:       "per_second",
+		Resolution:          "480p",
+		Quantity:            4,
+		VideoInputDurations: 7,
+		VideoInputCount:     2,
+		EstimatedTier:       "480p",
+		ExprVersion:         2,
 	}
 
 	other := taskBillingOther(task)
@@ -218,6 +220,8 @@ func TestTaskBillingOtherIncludesTieredBillingMetadata(t *testing.T) {
 	assert.Equal(t, "480p", other["matched_tier"])
 	assert.Equal(t, "480p", other["resolution"])
 	assert.Equal(t, 4.0, other["quantity"])
+	assert.Equal(t, 7.0, other["video_input_durations"])
+	assert.Equal(t, 2, other["video_input_count"])
 	exprB64, ok := other["expr_b64"].(string)
 	require.True(t, ok)
 	expr, err := base64.StdEncoding.DecodeString(exprB64)
@@ -857,36 +861,38 @@ func TestSettle_SeedancePerSecondUsesFrozenVideoInput(t *testing.T) {
 	const userID, tokenID, channelID = 33, 33, 33
 	const initQuota, tokenRemain = 5_000_000, 4_000_000
 	const preConsumed = 1_275_000
-	const expectedQuota = 775_000
+	const expectedQuota = 1_375_000
 
 	seedUser(t, userID, initQuota)
 	seedToken(t, tokenID, userID, "sk-seedance-video", tokenRemain)
 	seedChannel(t, channelID)
 
-	expr := `v2:param("resolution") == "720p" && has_media("video") ? tier("720p_video", charge("per_second", quantity, 0.31)) : param("resolution") == "720p" ? tier("720p_no_video", charge("per_second", quantity, 0.51)) : tier("fallback", charge("per_second", quantity, 0.46))`
+	expr := `v2:param("resolution") == "720p" && has_media("video") ? tier("720p_video", charge("per_second", quantity, 0.31) + charge("per_second", video_input_durations, 0.12)) : param("resolution") == "720p" ? tier("720p_no_video", charge("per_second", quantity, 0.51)) : tier("fallback", charge("per_second", quantity, 0.46))`
 	task := makeTask(userID, channelID, preConsumed, tokenID, BillingSourceWallet, 0)
 	task.PrivateData.BillingContext = &model.TaskBillingContext{
-		BillingMode:     "tiered_expr",
-		BillingExpr:     expr,
-		ExprHash:        billingexpr.ExprHashString(expr),
-		ExprVersion:     2,
-		BillingMethod:   "per_second",
-		Resolution:      "720p",
-		HasVideoInput:   true,
-		Quantity:        5,
-		EstimatedTier:   "720p_video",
-		GroupRatio:      1,
-		OriginModelName: "test-model",
+		BillingMode:         "tiered_expr",
+		BillingExpr:         expr,
+		ExprHash:            billingexpr.ExprHashString(expr),
+		ExprVersion:         2,
+		BillingMethod:       "per_second",
+		Resolution:          "720p",
+		HasVideoInput:       true,
+		Quantity:            5,
+		VideoInputDurations: 10,
+		VideoInputCount:     1,
+		EstimatedTier:       "720p_video",
+		GroupRatio:          1,
+		OriginModelName:     "test-model",
 	}
 
 	settleTaskBillingOnComplete(ctx, &mockAdaptor{}, task, &relaycommon.TaskInfo{Status: model.TaskStatusSuccess})
 
 	assert.Equal(t, expectedQuota, task.Quota)
-	assert.Equal(t, initQuota+(preConsumed-expectedQuota), getUserQuota(t, userID))
-	assert.Equal(t, tokenRemain+(preConsumed-expectedQuota), getTokenRemainQuota(t, tokenID))
+	assert.Equal(t, initQuota-(expectedQuota-preConsumed), getUserQuota(t, userID))
+	assert.Equal(t, tokenRemain-(expectedQuota-preConsumed), getTokenRemainQuota(t, tokenID))
 	log := getLastLog(t)
 	require.NotNil(t, log)
-	assert.Equal(t, model.LogTypeRefund, log.Type)
+	assert.Equal(t, model.LogTypeConsume, log.Type)
 }
 
 func TestSettle_NonPerCallBilling_AppliesAdaptorAdjustment(t *testing.T) {

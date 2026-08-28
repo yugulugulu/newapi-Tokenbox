@@ -27,6 +27,8 @@ type TokenParams struct {
 	AI       float64 // audio input tokens
 	AO       float64 // audio output tokens
 	Quantity float64 // normalized task quantity (v2 video expressions)
+	// VideoInputDurations is the rounded-up total duration of top-level video inputs.
+	VideoInputDurations float64
 }
 
 // TraceResult holds side-channel info captured by the tier() function
@@ -59,6 +61,8 @@ type BillingSnapshot struct {
 	Resolution                string  `json:"resolution,omitempty"`
 	HasVideoInput             bool    `json:"has_video_input,omitempty"`
 	Quantity                  float64 `json:"quantity,omitempty"`
+	VideoInputDurations       float64 `json:"video_input_durations,omitempty"`
+	VideoInputCount           int     `json:"video_input_count,omitempty"`
 	TaskCount                 int     `json:"task_count"`
 }
 

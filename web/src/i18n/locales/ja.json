@@ -5266,6 +5266,13 @@
     "Zero retention": "データ保持なし",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V 4",
-    "Zoom": "ズーム"
+    "Zoom": "ズーム",
+    "{{label}}: output {{outputPrice}} per second + input video {{inputPrice}} per second": "{{label}}：出力 {{outputPrice}}/秒 + 入力動画 {{inputPrice}}/秒",
+    "Input video": "入力動画",
+    "Input video count": "入力動画数",
+    "Input video duration": "入力動画の長さ",
+    "Input video price per second": "入力動画の1秒あたりの価格",
+    "Input video unit price": "入力動画の単価",
+    "Output unit price": "出力単価"
   }
 }

@@ -5266,6 +5266,13 @@
     "Zero retention": "Без хранения данных",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "{{label}}: output {{outputPrice}} per second + input video {{inputPrice}} per second": "{{label}}: выход {{outputPrice}}/с + входное видео {{inputPrice}}/с",
+    "Input video": "Входное видео",
+    "Input video count": "Количество входных видео",
+    "Input video duration": "Длительность входного видео",
+    "Input video price per second": "Цена входного видео за секунду",
+    "Input video unit price": "Цена единицы входного видео",
+    "Output unit price": "Цена единицы выхода"
   }
 }

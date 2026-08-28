@@ -180,6 +180,18 @@ function buildTypeDetailSegments(
         segments.push({
           text: `${t('Dynamic Pricing')} · ${unit} ${unitPrice}${quantity}`,
         })
+        if (
+          tieredSummary.videoInputUnitPrice != null &&
+          tieredSummary.videoInputDurations != null
+        ) {
+          const inputUnitPrice = formatBillingCurrencyFromUSD(
+            tieredSummary.videoInputUnitPrice,
+            priceOpts
+          )
+          segments.push({
+            text: `${t('Input video')} · ${t('Per second')} ${inputUnitPrice} × ${tieredSummary.videoInputDurations}`,
+          })
+        }
       }
       const baseEntries = tieredSummary.priceEntries
         .filter((entry) => ['inputPrice', 'outputPrice'].includes(entry.field))

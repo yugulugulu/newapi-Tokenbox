@@ -674,9 +674,12 @@ func settleTaskBillingOnComplete(ctx context.Context, adaptor TaskPollingAdaptor
 				BillingMode: bc.BillingMode, ModelName: bc.OriginModelName, ExprString: bc.BillingExpr,
 				ExprHash: bc.ExprHash, GroupRatio: bc.GroupRatio, QuotaPerUnit: common.QuotaPerUnit,
 				ExprVersion: bc.ExprVersion, BillingMethod: bc.BillingMethod, Resolution: bc.Resolution,
-				HasVideoInput: bc.HasVideoInput, Quantity: bc.Quantity, EstimatedTier: bc.EstimatedTier,
+				HasVideoInput: bc.HasVideoInput, Quantity: bc.Quantity, VideoInputDurations: bc.VideoInputDurations,
+				VideoInputCount: bc.VideoInputCount, EstimatedTier: bc.EstimatedTier,
 			}
-			result, err := billingexpr.ComputeTieredQuotaWithRequest(snapshot, billingexpr.TokenParams{Quantity: bc.Quantity}, billingexpr.RequestInput{Body: requestBody})
+			result, err := billingexpr.ComputeTieredQuotaWithRequest(snapshot, billingexpr.TokenParams{
+				Quantity: bc.Quantity, VideoInputDurations: bc.VideoInputDurations,
+			}, billingexpr.RequestInput{Body: requestBody})
 			if err != nil {
 				logger.LogError(ctx, fmt.Sprintf("任务 %s Seedance v2 结算失败: %s", task.TaskID, err.Error()))
 				return

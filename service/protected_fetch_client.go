@@ -89,7 +89,24 @@ func newProtectedFetchHTTPClientWithProxy(resolver ssrfResolver, dialContext fun
 			proxy:         proxy,
 			transports:    make(map[string]*http.Transport),
 		},
-		CheckRedirect: checkProtectedFetchRedirect,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			protection, enabled, err := getProtection()
+			if err != nil {
+				return err
+			}
+			if enabled {
+				if protection == nil {
+					return fmt.Errorf("SSRF protection is enabled but unavailable")
+				}
+				if err := protection.ValidateURL(req.URL.String()); err != nil {
+					return fmt.Errorf("redirect to %s blocked: %v", req.URL.String(), err)
+				}
+			}
+			if len(via) >= 10 {
+				return fmt.Errorf("stopped after 10 redirects")
+			}
+			return nil
+		},
 	}
 	if common.RelayTimeout != 0 {
 		client.Timeout = time.Duration(common.RelayTimeout) * time.Second
@@ -101,8 +118,17 @@ func (t *ssrfProtectedRoundTripper) RoundTrip(req *http.Request) (*http.Response
 	if req == nil || req.URL == nil {
 		return nil, fmt.Errorf("invalid request")
 	}
-	if err := ValidateSSRFProtectedFetchURL(req.URL.String()); err != nil {
+	protection, enabled, err := t.getProtection()
+	if err != nil {
 		return nil, err
+	}
+	if enabled {
+		if protection == nil {
+			return nil, fmt.Errorf("SSRF protection is enabled but unavailable")
+		}
+		if err := protection.ValidateURL(req.URL.String()); err != nil {
+			return nil, err
+		}
 	}
 
 	proxyURL, err := t.proxy(req)
@@ -174,6 +200,9 @@ func (d *protectedFetchDialer) DialContext(ctx context.Context, network, addr st
 	}
 	if !enabled {
 		return d.dialContext(ctx, network, addr)
+	}
+	if protection == nil {
+		return nil, fmt.Errorf("SSRF protection is enabled but unavailable")
 	}
 
 	host, portText, err := net.SplitHostPort(addr)

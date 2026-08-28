@@ -196,6 +196,8 @@ export interface LogOtherData {
   billing_method?: 'per_second' | 'per_call' | string
   resolution?: string
   quantity?: number
+  video_input_durations?: number
+  video_input_count?: number
   reasoning_effort?: string
   image?: boolean
   image_ratio?: number

@@ -19,7 +19,7 @@ import (
 // attachTieredBillingMetadata preserves the request-time dynamic pricing
 // decision in usage logs. model_price alone is ambiguous: a positive value can
 // be either a fixed per-call price or the computed result of a per-unit rule.
-func attachTieredBillingMetadata(other map[string]interface{}, billingMode, expr, method, matchedTier, resolution string, quantity float64) {
+func attachTieredBillingMetadata(other map[string]interface{}, billingMode, expr, method, matchedTier, resolution string, quantity, videoInputDurations float64, videoInputCount int) {
 	if other == nil || billingMode != "tiered_expr" || expr == "" {
 		return
 	}
@@ -36,6 +36,12 @@ func attachTieredBillingMetadata(other map[string]interface{}, billingMode, expr
 	}
 	if quantity > 0 {
 		other["quantity"] = quantity
+	}
+	if videoInputDurations > 0 {
+		other["video_input_durations"] = videoInputDurations
+	}
+	if videoInputCount > 0 {
+		other["video_input_count"] = videoInputCount
 	}
 }
 
@@ -74,7 +80,7 @@ func LogTaskConsumption(c *gin.Context, info *relaycommon.RelayInfo) {
 		other["user_group_ratio"] = info.PriceData.GroupRatioInfo.GroupSpecialRatio
 	}
 	if snapshot := info.TieredBillingSnapshot; snapshot != nil {
-		attachTieredBillingMetadata(other, snapshot.BillingMode, snapshot.ExprString, snapshot.BillingMethod, snapshot.EstimatedTier, snapshot.Resolution, snapshot.Quantity)
+		attachTieredBillingMetadata(other, snapshot.BillingMode, snapshot.ExprString, snapshot.BillingMethod, snapshot.EstimatedTier, snapshot.Resolution, snapshot.Quantity, snapshot.VideoInputDurations, snapshot.VideoInputCount)
 	}
 	if info.IsModelMapped {
 		other["is_model_mapped"] = true
@@ -156,7 +162,7 @@ func taskBillingOther(task *model.Task) map[string]interface{} {
 			other["model_ratio"] = bc.ModelRatio
 		}
 		other["group_ratio"] = bc.GroupRatio
-		attachTieredBillingMetadata(other, bc.BillingMode, bc.BillingExpr, bc.BillingMethod, bc.EstimatedTier, bc.Resolution, bc.Quantity)
+		attachTieredBillingMetadata(other, bc.BillingMode, bc.BillingExpr, bc.BillingMethod, bc.EstimatedTier, bc.Resolution, bc.Quantity, bc.VideoInputDurations, bc.VideoInputCount)
 		if priceData := taskBillingContextPriceData(bc); priceData != nil {
 			for k, v := range priceData.OtherRatios() {
 				other[k] = v

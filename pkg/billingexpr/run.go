@@ -53,17 +53,18 @@ func runProgram(prog *vm.Program, params TokenParams, request RequestInput, vers
 	headers := normalizeHeaders(request.Headers)
 
 	env := map[string]interface{}{
-		"p":        params.P,
-		"c":        params.C,
-		"len":      params.Len,
-		"cr":       params.CR,
-		"cc":       params.CC,
-		"cc1h":     params.CC1h,
-		"img":      params.Img,
-		"img_o":    params.ImgO,
-		"ai":       params.AI,
-		"ao":       params.AO,
-		"quantity": params.Quantity,
+		"p":                     params.P,
+		"c":                     params.C,
+		"len":                   params.Len,
+		"cr":                    params.CR,
+		"cc":                    params.CC,
+		"cc1h":                  params.CC1h,
+		"img":                   params.Img,
+		"img_o":                 params.ImgO,
+		"ai":                    params.AI,
+		"ao":                    params.AO,
+		"quantity":              params.Quantity,
+		"video_input_durations": params.VideoInputDurations,
 		"charge": func(method string, quantity float64, price float64) (float64, error) {
 			if version != 2 {
 				return 0, fmt.Errorf("charge is only available in v2 expressions")
@@ -74,7 +75,11 @@ func runProgram(prog *vm.Program, params TokenParams, request RequestInput, vers
 			if math.IsNaN(price) || math.IsInf(price, 0) || price < 0 {
 				return 0, fmt.Errorf("price must be finite and non-negative")
 			}
-			switch strings.TrimSpace(method) {
+			normalizedMethod := strings.TrimSpace(method)
+			if trace.BillingMethod != "" && trace.BillingMethod != normalizedMethod {
+				return 0, fmt.Errorf("mixed charge methods are not supported in one matched tier")
+			}
+			switch normalizedMethod {
 			case "per_second":
 				trace.BillingMethod = "per_second"
 				return quantity * price, nil

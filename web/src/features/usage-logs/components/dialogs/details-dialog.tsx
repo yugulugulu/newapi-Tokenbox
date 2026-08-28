@@ -264,6 +264,27 @@ function BillingBreakdown(props: {
             value: String(tieredSummary.quantity),
           })
         }
+        if (tieredSummary.videoInputUnitPrice != null) {
+          rows.push({
+            label: t('Input video unit price'),
+            value: formatBillingCurrencyFromUSD(
+              tieredSummary.videoInputUnitPrice,
+              priceOpts
+            ),
+          })
+        }
+        if (tieredSummary.videoInputDurations != null) {
+          rows.push({
+            label: t('Input video duration'),
+            value: `${tieredSummary.videoInputDurations} ${t('seconds')}`,
+          })
+        }
+        if (tieredSummary.videoInputCount != null) {
+          rows.push({
+            label: t('Input video count'),
+            value: String(tieredSummary.videoInputCount),
+          })
+        }
       }
       if (tieredSummary.tier.label) {
         rows.push({
