@@ -19,12 +19,12 @@ For commercial licensing, please contact support@quantumnous.com
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 
+import { parseTiersFromExpr } from '../billing-expr.ts'
 import {
   generateSeedanceExpr,
   normalizeSeedanceConfig,
   tryParseSeedanceExpr,
 } from '../tier-expr.ts'
-import { parseTiersFromExpr } from '../billing-expr.ts'
 
 describe('Seedance v2 tier expression editor helpers', () => {
   test('generates and parses a single resolution tier without fallback pricing', () => {
@@ -89,6 +89,81 @@ describe('Seedance v2 tier expression editor helpers', () => {
       tryParseSeedanceExpr(expr),
       normalizeSeedanceConfig(config)
     )
+  })
+
+  test('does not generate a resolution condition for an incomplete added tier', () => {
+    const config = normalizeSeedanceConfig({
+      tiers: [
+        {
+          label: '720p',
+          resolution: '720p',
+          method: 'per_second',
+          videoInput: 'without_video',
+          price: 0.51,
+          fallback: false,
+        },
+        {
+          label: 'tier_2',
+          resolution: '',
+          method: 'per_second',
+          videoInput: 'without_video',
+          price: 0,
+          fallback: false,
+        },
+      ],
+    })
+
+    const expr = generateSeedanceExpr(config)
+
+    assert.doesNotMatch(expr, /param\("resolution"\) == ""/)
+    assert.deepEqual(tryParseSeedanceExpr(expr), {
+      tiers: [
+        {
+          label: '720p',
+          resolution: '720p',
+          method: 'per_second',
+          videoInput: 'without_video',
+          price: 0.51,
+          fallback: false,
+        },
+      ],
+    })
+  })
+
+  test('ignores an incomplete resolution branch when reopening an expression', () => {
+    const expr =
+      'v2:param("resolution") == "720p" ? tier("720p", charge("per_call", quantity, 0.8)) : param("resolution") == "" && !has_media("video") ? tier("tier_2", charge("per_second", quantity, 0)) : tier("__unsupported_resolution__", charge("per_call", quantity, 0))'
+
+    assert.deepEqual(tryParseSeedanceExpr(expr), {
+      tiers: [
+        {
+          label: '720p',
+          resolution: '720p',
+          method: 'per_call',
+          videoInput: undefined,
+          price: 0.8,
+          fallback: false,
+        },
+      ],
+    })
+  })
+
+  test('ignores an incomplete first resolution branch when reopening an expression', () => {
+    const expr =
+      'v2:param("resolution") == "" && !has_media("video") ? tier("tier_1", charge("per_second", quantity, 0)) : param("resolution") == "720p" ? tier("720p", charge("per_call", quantity, 0.8)) : tier("__unsupported_resolution__", charge("per_call", quantity, 0))'
+
+    assert.deepEqual(tryParseSeedanceExpr(expr), {
+      tiers: [
+        {
+          label: '720p',
+          resolution: '720p',
+          method: 'per_call',
+          videoInput: undefined,
+          price: 0.8,
+          fallback: false,
+        },
+      ],
+    })
   })
 
   test('drops a legacy fallback tier when opening it in the editor', () => {

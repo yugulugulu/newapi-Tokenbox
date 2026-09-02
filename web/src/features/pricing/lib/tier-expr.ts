@@ -157,7 +157,14 @@ export function generateSeedanceExpr(
   config: SeedanceConfig | null | undefined
 ): string {
   const normalized = normalizeSeedanceConfig(config)
-  const parts = normalized.tiers.map((tier, index) => {
+  // A newly added editor row starts without a resolution. It is an incomplete
+  // draft, not a catch-all tier, so do not turn it into `resolution == ""`.
+  const tiers = normalized.tiers.filter(
+    (tier) => tier.resolution?.trim() !== ''
+  )
+  const effectiveTiers =
+    tiers.length > 0 ? tiers : createDefaultSeedanceConfig().tiers
+  const parts = effectiveTiers.map((tier, index) => {
     const label = JSON.stringify(tier.label || `tier_${index + 1}`)
     let charge = `charge(${JSON.stringify(tier.method)}, quantity, ${formatSeedancePrice(tier.price)})`
     if (
@@ -197,20 +204,24 @@ export function tryParseSeedanceExpr(
   )
   const tiers: SeedanceTier[] = []
   let lastBranchHadCondition = false
+  let parsedBranchCount = 0
   let cursor = 0
   let match: RegExpExecArray | null
   while ((match = branchRe.exec(body)) !== null) {
     if (
-      body.slice(cursor, match.index).trim() !== (tiers.length === 0 ? '' : ':')
+      body.slice(cursor, match.index).trim() !==
+      (parsedBranchCount === 0 ? '' : ':')
     ) {
       return null
     }
+    parsedBranchCount += 1
     const hasCondition = Boolean(match[1])
     lastBranchHadCondition = hasCondition
     const label = JSON.parse(match[4]) as string
     const method = JSON.parse(match[5]) as SeedanceBillingMethod
     const price = Number(match[6])
-    const videoInputPrice = match[7] === undefined ? undefined : Number(match[7])
+    const videoInputPrice =
+      match[7] === undefined ? undefined : Number(match[7])
     const mediaCondition = match[3]
     if (mediaCondition && method !== 'per_second') return null
     if (videoInputPrice !== undefined && method !== 'per_second') return null
@@ -235,6 +246,12 @@ export function tryParseSeedanceExpr(
       price,
       videoInput,
       fallback: false,
+    }
+    // Ignore incomplete conditional rows left by an unsaved visual-editor
+    // draft. They must not prevent the remaining valid tiers from loading.
+    if (hasCondition && !tier.resolution) {
+      cursor = branchRe.lastIndex
+      continue
     }
     if (videoInputPrice !== undefined) {
       tier.videoInputPrice = videoInputPrice
