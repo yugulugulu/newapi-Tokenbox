@@ -5273,6 +5273,7 @@
     "Input video duration": "入力動画の長さ",
     "Input video price per second": "入力動画の1秒あたりの価格",
     "Input video unit price": "入力動画の単価",
-    "Output unit price": "出力単価"
+    "Output unit price": "出力単価",
+    "Requests outside configured resolutions are rejected.": "設定範囲外の解像度のリクエストは拒否されます。"
   }
 }

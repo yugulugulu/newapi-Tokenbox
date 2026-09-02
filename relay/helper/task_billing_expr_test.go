@@ -306,6 +306,52 @@ func TestPrepareTaskV2BillingNoVideoDoesNotProbe(t *testing.T) {
 	assert.False(t, info.TieredBillingSnapshot.HasVideoInput)
 }
 
+func TestPrepareTaskV2BillingRejectsUnsupportedResolution(t *testing.T) {
+	expr := `v2:param("resolution") == "720p" ? tier("720p", charge("per_second", quantity, 0.51)) : tier("__unsupported_resolution__", charge("per_call", quantity, 0))`
+	configureTaskV2BillingTest(t,
+		billingSettingJSON(t, map[string]string{"doubao-seedance-2-0-260128": "tiered_expr"}),
+		billingSettingJSON(t, map[string]string{"doubao-seedance-2-0-260128": expr}),
+	)
+	c, info := newTaskV2BillingContext(relaycommon.TaskSubmitReq{Duration: 5, Resolution: "1080p"})
+	info.OriginModelName = "doubao-seedance-2-0-260128"
+
+	_, handled, err := PrepareTaskV2Billing(c, info)
+
+	assert.True(t, handled)
+	require.EqualError(t, err, "不在模型支持的分辨率范围内")
+	assert.Nil(t, info.TieredBillingSnapshot)
+}
+
+func TestPrepareTaskV2BillingRejectsLegacyFallbackForSeedance2(t *testing.T) {
+	expr := `v2:param("resolution") == "720p" ? tier("720p", charge("per_second", quantity, 0.51)) : tier("fallback", charge("per_second", quantity, 0.46))`
+	configureTaskV2BillingTest(t,
+		billingSettingJSON(t, map[string]string{"doubao-seedance-2-0-260128": "tiered_expr"}),
+		billingSettingJSON(t, map[string]string{"doubao-seedance-2-0-260128": expr}),
+	)
+	originalProbe := probeTaskVideoInputDurations
+	t.Cleanup(func() { probeTaskVideoInputDurations = originalProbe })
+	probeTaskVideoInputDurations = func(_ context.Context, _ []string) (float64, error) {
+		t.Fatal("probe must not run for an unsupported resolution")
+		return 0, nil
+	}
+
+	c, info := newTaskV2BillingContext(relaycommon.TaskSubmitReq{
+		Duration:   5,
+		Resolution: "1080p",
+		Content: []relaycommon.TaskContentItem{{
+			Type:     "video_url",
+			VideoURL: &relaycommon.TaskMediaURL{URL: "https://example.com/action.mp4"},
+		}},
+	})
+	info.OriginModelName = "doubao-seedance-2-0-260128"
+
+	_, handled, err := PrepareTaskV2Billing(c, info)
+
+	assert.True(t, handled)
+	require.EqualError(t, err, "不在模型支持的分辨率范围内")
+	assert.Nil(t, info.TieredBillingSnapshot)
+}
+
 func TestPrepareTaskV2BillingRetryReusesFrozenSnapshot(t *testing.T) {
 	configureTaskV2BillingTest(t,
 		billingSettingJSON(t, map[string]string{"seedance-v2-test": "tiered_expr"}),

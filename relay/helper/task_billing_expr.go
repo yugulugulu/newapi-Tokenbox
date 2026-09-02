@@ -20,6 +20,8 @@ var probeTaskVideoInputDurations = func(ctx context.Context, videoURLs []string)
 	return service.ProbeVideoInputDurations(ctx, videoURLs)
 }
 
+const unsupportedResolutionTier = "__unsupported_resolution__"
+
 // PrepareTaskV2Billing evaluates a v2 task expression at submission time.
 // It returns handled=false for legacy/non-v2 task pricing so callers can keep
 // the existing per-call/Sora billing path unchanged.
@@ -98,6 +100,17 @@ func PrepareTaskV2Billing(c *gin.Context, info *relaycommon.RelayInfo) (priceDat
 	if err != nil {
 		return hosttypes.PriceData{}, true, fmt.Errorf("model %s v2 task expression failed: %w", info.OriginModelName, err)
 	}
+	if isSeedanceV2Model(info.OriginModelName) {
+		if isUnsupportedResolutionTrace(trace) {
+			return hosttypes.PriceData{}, true, fmt.Errorf("不在模型支持的分辨率范围内")
+		}
+		if trace.MatchedTier == "" {
+			return hosttypes.PriceData{}, true, fmt.Errorf("不在模型支持的分辨率范围内")
+		}
+		if err := rejectSeedanceLegacyFallback(exprString, params); err != nil {
+			return hosttypes.PriceData{}, true, err
+		}
+	}
 	videoInputDurations := float64(0)
 	if hasVideoInput && trace.BillingMethod == "per_second" && billingexpr.UsedVars(exprString)["video_input_durations"] {
 		videoInputDurations, err = probeTaskVideoInputDurations(c.Request.Context(), videoInputURLs)
@@ -161,6 +174,32 @@ func PrepareTaskV2Billing(c *gin.Context, info *relaycommon.RelayInfo) (priceDat
 	info.PriceData.ModelPrice = cost
 	info.PriceData.UsePrice = true
 	return info.PriceData, true, nil
+}
+
+func isSeedanceV2Model(modelName string) bool {
+	return strings.Contains(strings.ToLower(strings.TrimSpace(modelName)), "seedance-2-0")
+}
+
+func rejectSeedanceLegacyFallback(exprString string, params billingexpr.TokenParams) error {
+	for _, hasVideoInput := range []bool{false, true} {
+		requestBody, err := buildTaskV2BillingRequestBody("__new_api_unmatched_resolution__", hasVideoInput)
+		if err != nil {
+			return fmt.Errorf("marshal task billing request: %w", err)
+		}
+		_, trace, err := billingexpr.RunExprWithRequest(exprString, params, billingexpr.RequestInput{Body: requestBody})
+		if err != nil {
+			return fmt.Errorf("model Seedance 2.0 v2 task expression failed: %w", err)
+		}
+		if trace.MatchedTier != "" && !isUnsupportedResolutionTrace(trace) {
+			return fmt.Errorf("不在模型支持的分辨率范围内")
+		}
+	}
+	return nil
+}
+
+func isUnsupportedResolutionTrace(trace billingexpr.TraceResult) bool {
+	return trace.MatchedTier == unsupportedResolutionTier &&
+		trace.BillingMethod == "per_call" && trace.Cost == 0
 }
 
 func normalizeTaskResolution(req relaycommon.TaskSubmitReq) (string, error) {

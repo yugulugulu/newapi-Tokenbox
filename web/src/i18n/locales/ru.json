@@ -5273,6 +5273,7 @@
     "Input video duration": "Длительность входного видео",
     "Input video price per second": "Цена входного видео за секунду",
     "Input video unit price": "Цена единицы входного видео",
-    "Output unit price": "Цена единицы выхода"
+    "Output unit price": "Цена единицы выхода",
+    "Requests outside configured resolutions are rejected.": "Запросы с разрешением вне настроенного диапазона отклоняются."
   }
 }

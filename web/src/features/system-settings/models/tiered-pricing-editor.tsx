@@ -161,7 +161,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         key: 'seedance-2.0',
         label: 'Seedance 2.0',
-        expr: 'v2:param("resolution") == "480p" && !has_media("video") ? tier("480p_no_video", charge("per_second", quantity, 0.46)) : param("resolution") == "480p" && has_media("video") ? tier("480p_video", charge("per_second", quantity, 0.28)) : param("resolution") == "1080p" && !has_media("video") ? tier("1080p_no_video", charge("per_second", quantity, 0.51)) : param("resolution") == "1080p" && has_media("video") ? tier("1080p_video", charge("per_second", quantity, 0.31)) : param("resolution") == "4k" && !has_media("video") ? tier("4k_no_video", charge("per_second", quantity, 0.26)) : param("resolution") == "4k" && has_media("video") ? tier("4k_video", charge("per_second", quantity, 0.16)) : tier("fallback", charge("per_second", quantity, 0.46))',
+        expr: 'v2:param("resolution") == "480p" && !has_media("video") ? tier("480p_no_video", charge("per_second", quantity, 0.46)) : param("resolution") == "480p" && has_media("video") ? tier("480p_video", charge("per_second", quantity, 0.28)) : param("resolution") == "1080p" && !has_media("video") ? tier("1080p_no_video", charge("per_second", quantity, 0.51)) : param("resolution") == "1080p" && has_media("video") ? tier("1080p_video", charge("per_second", quantity, 0.31)) : param("resolution") == "4k" && !has_media("video") ? tier("4k_no_video", charge("per_second", quantity, 0.26)) : param("resolution") == "4k" && has_media("video") ? tier("4k_video", charge("per_second", quantity, 0.16)) : tier("__unsupported_resolution__", charge("per_call", quantity, 0))',
       },
       {
         key: 'claude-sonnet',
@@ -1657,11 +1657,7 @@ function SeedanceEditor({ config, onChange }: SeedanceEditorProps) {
   }
 
   const addTier = () => {
-    const tiers = normalized.tiers.map((tier, index) =>
-      index === normalized.tiers.length - 1
-        ? { ...tier, fallback: false, resolution: '' }
-        : tier
-    )
+    const tiers = [...normalized.tiers]
     tiers.push({
       label: `tier_${tiers.length + 1}`,
       resolution: '',
@@ -1669,16 +1665,13 @@ function SeedanceEditor({ config, onChange }: SeedanceEditorProps) {
       videoInput: 'without_video',
       price: 0,
       videoInputPrice: 0,
-      fallback: true,
+      fallback: false,
     })
     onChange({ tiers })
   }
 
   const removeTier = (index: number) => {
-    if (
-      normalized.tiers.length === 1 ||
-      index === normalized.tiers.length - 1
-    ) {
+    if (normalized.tiers.length === 1) {
       return
     }
     tierKeys.current.splice(index, 1)
@@ -1691,21 +1684,18 @@ function SeedanceEditor({ config, onChange }: SeedanceEditorProps) {
     <div className='space-y-3'>
       <p className='text-muted-foreground text-xs'>
         {t(
-          'Match resolution exactly after trimming whitespace. The last tier is always the fallback.'
+          'Match resolution exactly after trimming whitespace. Requests outside configured resolutions are rejected.'
         )}
       </p>
       {normalized.tiers.map((tier, index) => {
-        const fallback = index === normalized.tiers.length - 1
-        let previewLabel = t('Fallback')
-        if (!fallback && tier.videoInput === 'with_video') {
+        let previewLabel = t('Without video input')
+        if (tier.videoInput === 'with_video') {
           previewLabel = t('With video input')
-        } else if (!fallback) {
-          previewLabel = t('Without video input')
         }
         let previewText = `${previewLabel}: ${tier.price} / ${t('Per second')}`
         if (tier.method === 'per_call') {
           previewText = t('Preview: {{price}} per call', { price: tier.price })
-        } else if (fallback || tier.videoInput === 'with_video') {
+        } else if (tier.videoInput === 'with_video') {
           previewText = t(
             '{{label}}: output {{outputPrice}} per second + input video {{inputPrice}} per second',
             {
@@ -1723,13 +1713,8 @@ function SeedanceEditor({ config, onChange }: SeedanceEditorProps) {
             <div className='flex items-center justify-between gap-2'>
               <div className='text-sm font-medium'>
                 {tier.label || `${t('Tier')} ${index + 1}`}
-                {fallback && (
-                  <Badge className='ml-2' variant='secondary'>
-                    {t('Fallback')}
-                  </Badge>
-                )}
               </div>
-              {!fallback && (
+              {normalized.tiers.length > 1 && (
                 <Button
                   variant='ghost'
                   size='icon'
@@ -1750,18 +1735,16 @@ function SeedanceEditor({ config, onChange }: SeedanceEditorProps) {
                   }
                 />
               </Field>
-              {!fallback && (
-                <Field className='gap-2'>
-                  <FieldLabel>{t('Video resolution')}</FieldLabel>
-                  <Input
-                    value={tier.resolution ?? ''}
-                    onChange={(event) =>
-                      updateTier(index, { resolution: event.target.value })
-                    }
-                    placeholder='480p'
-                  />
-                </Field>
-              )}
+              <Field className='gap-2'>
+                <FieldLabel>{t('Video resolution')}</FieldLabel>
+                <Input
+                  value={tier.resolution ?? ''}
+                  onChange={(event) =>
+                    updateTier(index, { resolution: event.target.value })
+                  }
+                  placeholder='480p'
+                />
+              </Field>
             </div>
             <div className='grid gap-3 sm:grid-cols-2'>
               <Field className='gap-2'>
@@ -1787,7 +1770,7 @@ function SeedanceEditor({ config, onChange }: SeedanceEditorProps) {
                   </SelectContent>
                 </Select>
               </Field>
-              {tier.method === 'per_second' && !fallback && (
+              {tier.method === 'per_second' && (
                 <Field className='gap-2'>
                   <FieldLabel>{t('Video input')}</FieldLabel>
                   <Select
@@ -1836,7 +1819,7 @@ function SeedanceEditor({ config, onChange }: SeedanceEditorProps) {
                 />
               </Field>
               {tier.method === 'per_second' &&
-                (fallback || tier.videoInput === 'with_video') && (
+                tier.videoInput === 'with_video' && (
                   <Field className='gap-2'>
                     <FieldLabel>{t('Input video price per second')}</FieldLabel>
                     <Input
