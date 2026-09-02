@@ -160,6 +160,19 @@ export const BILLING_CACHE_VAR_MAP = BILLING_EXTRA_VARS.map((v) => ({
   exprVar: v.key,
 }))
 
+export const SEEDANCE_UNSUPPORTED_RESOLUTION_TIER = '__unsupported_resolution__'
+
+function isSeedanceUnsupportedResolutionTier(tier: ParsedTier): boolean {
+  return (
+    tier.label === SEEDANCE_UNSUPPORTED_RESOLUTION_TIER &&
+    tier.billing_method === 'per_call' &&
+    tier.unit_price === 0 &&
+    tier.resolution === undefined &&
+    tier.video_input === undefined &&
+    tier.video_input_unit_price === undefined
+  )
+}
+
 const BILLING_VAR_REGEX = new RegExp(
   `\\b(${BILLING_PRICING_VARS.map((v) => v.key).join('|')})\\s*\\*\\s*([\\d.eE+-]+)`,
   'g'
@@ -310,7 +323,10 @@ export function parseTiersFromExpr(exprStr: string): ParsedTier[] {
         }
         taskTiers.push(tier)
       }
-      if (taskTiers.length > 0) return taskTiers
+      const visibleTaskTiers = taskTiers.filter(
+        (tier) => !isSeedanceUnsupportedResolutionTier(tier)
+      )
+      if (visibleTaskTiers.length > 0) return visibleTaskTiers
     }
 
     const condGroup =

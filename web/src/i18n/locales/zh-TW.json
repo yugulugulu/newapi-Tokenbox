@@ -5273,6 +5273,7 @@
     "Input video duration": "輸入影片時長",
     "Input video price per second": "輸入影片每秒價格",
     "Input video unit price": "輸入影片單價",
-    "Output unit price": "輸出單價"
+    "Output unit price": "輸出單價",
+    "Requests outside configured resolutions are rejected.": "超出已設定解析度範圍的請求將被拒絕。"
   }
 }

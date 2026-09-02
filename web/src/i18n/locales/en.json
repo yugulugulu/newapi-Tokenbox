@@ -5273,6 +5273,7 @@
     "Input video duration": "Input video duration",
     "Input video price per second": "Input video price per second",
     "Input video unit price": "Input video unit price",
-    "Output unit price": "Output unit price"
+    "Output unit price": "Output unit price",
+    "Requests outside configured resolutions are rejected.": "Requests outside configured resolutions are rejected."
   }
 }

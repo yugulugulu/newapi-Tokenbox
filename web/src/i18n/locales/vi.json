@@ -5273,6 +5273,7 @@
     "Input video duration": "Thời lượng video đầu vào",
     "Input video price per second": "Giá video đầu vào mỗi giây",
     "Input video unit price": "Đơn giá video đầu vào",
-    "Output unit price": "Đơn giá đầu ra"
+    "Output unit price": "Đơn giá đầu ra",
+    "Requests outside configured resolutions are rejected.": "Yêu cầu có độ phân giải ngoài phạm vi đã cấu hình sẽ bị từ chối."
   }
 }

@@ -5273,6 +5273,7 @@
     "Input video duration": "输入视频时长",
     "Input video price per second": "输入视频每秒价格",
     "Input video unit price": "输入视频单价",
-    "Output unit price": "输出单价"
+    "Output unit price": "输出单价",
+    "Requests outside configured resolutions are rejected.": "配置范围外的分辨率请求将被拒绝。"
   }
 }

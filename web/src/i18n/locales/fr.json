@@ -5273,6 +5273,7 @@
     "Input video duration": "Durée des vidéos d’entrée",
     "Input video price per second": "Prix de la vidéo d’entrée par seconde",
     "Input video unit price": "Prix unitaire de la vidéo d’entrée",
-    "Output unit price": "Prix unitaire de sortie"
+    "Output unit price": "Prix unitaire de sortie",
+    "Requests outside configured resolutions are rejected.": "Les demandes avec une résolution non configurée sont refusées."
   }
 }

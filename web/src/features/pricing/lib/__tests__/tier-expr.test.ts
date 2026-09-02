@@ -27,21 +27,23 @@ import {
 import { parseTiersFromExpr } from '../billing-expr.ts'
 
 describe('Seedance v2 tier expression editor helpers', () => {
-  test('generates and parses a single fallback tier', () => {
+  test('generates and parses a single resolution tier without fallback pricing', () => {
     const config = normalizeSeedanceConfig({
       tiers: [
         {
-          label: 'fallback',
+          label: '480p',
+          resolution: '480p',
           method: 'per_second',
+          videoInput: 'without_video',
           price: 0.32,
-          fallback: true,
+          fallback: false,
         },
       ],
     })
     const expr = generateSeedanceExpr(config)
     assert.equal(
       expr,
-      'v2:tier("fallback", charge("per_second", quantity, 0.32))'
+      'v2:param("resolution") == "480p" && !has_media("video") ? tier("480p", charge("per_second", quantity, 0.32)) : tier("__unsupported_resolution__", charge("per_call", quantity, 0))'
     )
     assert.deepEqual(tryParseSeedanceExpr(expr), config)
   })
@@ -89,9 +91,9 @@ describe('Seedance v2 tier expression editor helpers', () => {
     )
   })
 
-  test('expands a legacy per-second tier into equal video and no-video tiers', () => {
+  test('drops a legacy fallback tier when opening it in the editor', () => {
     const legacyExpr =
-      'v2:param("resolution") == "720p" ? tier("720p", charge("per_second", quantity, 0.51)) : tier("fallback", charge("per_call", quantity, 1))'
+      'v2:param("resolution") == "720p" ? tier("720p", charge("per_second", quantity, 0.51)) : tier("custom default", charge("per_call", quantity, 1))'
     const parsed = tryParseSeedanceExpr(legacyExpr)
 
     assert.deepEqual(parsed, {
@@ -112,13 +114,50 @@ describe('Seedance v2 tier expression editor helpers', () => {
           price: 0.51,
           fallback: false,
         },
+      ],
+    })
+  })
+
+  test('converts a standalone legacy fallback into an explicit 480p tier', () => {
+    const legacyExpr =
+      'v2:tier("custom default", charge("per_call", quantity, 1))'
+
+    assert.deepEqual(tryParseSeedanceExpr(legacyExpr), {
+      tiers: [
         {
-          label: 'fallback',
-          resolution: undefined,
+          label: 'custom default',
+          resolution: '480p',
           method: 'per_call',
           videoInput: undefined,
           price: 1,
-          fallback: true,
+          fallback: false,
+        },
+      ],
+    })
+  })
+
+  test('preserves legacy fallback input video pricing when converting it to 480p', () => {
+    const legacyExpr =
+      'v2:tier("fallback", charge("per_second", quantity, 0.46) + charge("per_second", video_input_durations, 0.12))'
+
+    assert.deepEqual(tryParseSeedanceExpr(legacyExpr), {
+      tiers: [
+        {
+          label: 'fallback',
+          resolution: '480p',
+          method: 'per_second',
+          videoInput: 'without_video',
+          price: 0.46,
+          fallback: false,
+        },
+        {
+          label: 'fallback',
+          resolution: '480p',
+          method: 'per_second',
+          videoInput: 'with_video',
+          price: 0.46,
+          videoInputPrice: 0.12,
+          fallback: false,
         },
       ],
     })
@@ -146,21 +185,23 @@ describe('Seedance v2 tier expression editor helpers', () => {
     const expr = generateSeedanceExpr(config)
     assert.equal(
       expr,
-      'v2:param("resolution") == "720p" ? tier("720p_call", charge("per_call", quantity, 0.8)) : tier("fallback", charge("per_call", quantity, 1))'
+      'v2:param("resolution") == "720p" ? tier("720p_call", charge("per_call", quantity, 0.8)) : tier("__unsupported_resolution__", charge("per_call", quantity, 0))'
     )
     assert.doesNotMatch(expr, /has_media/)
     assert.deepEqual(tryParseSeedanceExpr(expr), config)
   })
 
-  test('generates and parses input video duration pricing for fallback', () => {
+  test('generates and parses input video duration pricing for a configured tier', () => {
     const config = normalizeSeedanceConfig({
       tiers: [
         {
-          label: 'fallback',
+          label: '720p_video',
+          resolution: '720p',
           method: 'per_second',
+          videoInput: 'with_video',
           price: 0.46,
           videoInputPrice: 0.12,
-          fallback: true,
+          fallback: false,
         },
       ],
     })
@@ -168,7 +209,7 @@ describe('Seedance v2 tier expression editor helpers', () => {
     const expr = generateSeedanceExpr(config)
     assert.equal(
       expr,
-      'v2:tier("fallback", charge("per_second", quantity, 0.46) + charge("per_second", video_input_durations, 0.12))'
+      'v2:param("resolution") == "720p" && has_media("video") ? tier("720p_video", charge("per_second", quantity, 0.46) + charge("per_second", video_input_durations, 0.12)) : tier("__unsupported_resolution__", charge("per_call", quantity, 0))'
     )
     assert.deepEqual(tryParseSeedanceExpr(expr), config)
   })
@@ -212,6 +253,36 @@ describe('Seedance v2 tier expression editor helpers', () => {
         billing_method: 'per_second',
         unit_price: 0.46,
         video_input_unit_price: 0.1,
+      },
+    ])
+  })
+
+  test('hides the unsupported-resolution sentinel from pricing details', () => {
+    const expr =
+      'v2:param("resolution") == "720p" ? tier("720p", charge("per_second", quantity, 0.51)) : tier("__unsupported_resolution__", charge("per_call", quantity, 0))'
+
+    assert.deepEqual(parseTiersFromExpr(expr), [
+      {
+        label: '720p',
+        conditions: [],
+        billing_method: 'per_second',
+        unit_price: 0.51,
+        resolution: '720p',
+      },
+    ])
+  })
+
+  test('keeps a real zero-priced tier named like the sentinel visible', () => {
+    const expr =
+      'v2:param("resolution") == "720p" ? tier("__unsupported_resolution__", charge("per_call", quantity, 1)) : tier("__unsupported_resolution__", charge("per_call", quantity, 0))'
+
+    assert.deepEqual(parseTiersFromExpr(expr), [
+      {
+        label: '__unsupported_resolution__',
+        conditions: [],
+        billing_method: 'per_call',
+        unit_price: 1,
+        resolution: '720p',
       },
     ])
   })

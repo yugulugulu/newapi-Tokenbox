@@ -16,7 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { BILLING_CACHE_VAR_MAP } from './billing-expr'
+import {
+  BILLING_CACHE_VAR_MAP,
+  SEEDANCE_UNSUPPORTED_RESOLUTION_TIER,
+} from './billing-expr'
 
 export const CACHE_MODE_TIMED = 'timed'
 export const CACHE_MODE_GENERIC = 'generic'
@@ -65,6 +68,17 @@ export type SeedanceConfig = {
   tiers: SeedanceTier[]
 }
 
+function isSeedanceUnsupportedResolutionTier(tier: SeedanceTier): boolean {
+  return (
+    tier.label === SEEDANCE_UNSUPPORTED_RESOLUTION_TIER &&
+    tier.method === 'per_call' &&
+    tier.price === 0 &&
+    tier.resolution === undefined &&
+    tier.videoInput === undefined &&
+    tier.videoInputPrice === undefined
+  )
+}
+
 function normalizeSeedancePrice(value: unknown): number {
   const price = Number(value)
   if (!Number.isFinite(price) || price < 0) return 0
@@ -74,39 +88,41 @@ function normalizeSeedancePrice(value: unknown): number {
 export function normalizeSeedanceConfig(
   config: SeedanceConfig | null | undefined
 ): SeedanceConfig {
+  const configuredTiers = Array.isArray(config?.tiers)
+    ? config.tiers.filter((tier) => !tier.fallback)
+    : []
   const tiers =
-    Array.isArray(config?.tiers) && config.tiers.length > 0
-      ? config.tiers
+    configuredTiers.length > 0
+      ? configuredTiers
       : [
           {
-            label: 'fallback',
+            label: '480p',
+            resolution: '480p',
             method: 'per_second' as const,
+            videoInput: 'without_video' as const,
             price: 0,
-            fallback: true,
+            fallback: false,
           },
         ]
   return {
-    tiers: tiers.map((tier, index) => {
-      const fallback = index === tiers.length - 1
+    tiers: tiers.map((tier) => {
       let videoInput: SeedanceVideoInput | undefined
-      if (!fallback && tier.method !== 'per_call') {
+      if (tier.method !== 'per_call') {
         videoInput =
           tier.videoInput === 'with_video' ? 'with_video' : 'without_video'
       }
       const normalizedTier: SeedanceTier = {
         label: String(tier.label ?? ''),
-        resolution: fallback
-          ? undefined
-          : String(tier.resolution ?? '').trim(),
+        resolution: String(tier.resolution ?? '').trim(),
         method: tier.method === 'per_call' ? 'per_call' : 'per_second',
         videoInput,
         price: normalizeSeedancePrice(tier.price),
-        fallback,
+        fallback: false,
       }
       if (
         tier.videoInputPrice !== undefined &&
         tier.method !== 'per_call' &&
-        (fallback || videoInput === 'with_video')
+        videoInput === 'with_video'
       ) {
         normalizedTier.videoInputPrice = normalizeSeedancePrice(
           tier.videoInputPrice
@@ -126,11 +142,12 @@ export function createDefaultSeedanceConfig(): SeedanceConfig {
   return normalizeSeedanceConfig({
     tiers: [
       {
-        label: 'fallback',
+        label: '480p',
+        resolution: '480p',
         method: 'per_second',
+        videoInput: 'without_video',
         price: 0,
-        videoInputPrice: 0,
-        fallback: true,
+        fallback: false,
       },
     ],
   })
@@ -141,19 +158,16 @@ export function generateSeedanceExpr(
 ): string {
   const normalized = normalizeSeedanceConfig(config)
   const parts = normalized.tiers.map((tier, index) => {
-    const label = JSON.stringify(
-      tier.label || (tier.fallback ? 'fallback' : `tier_${index + 1}`)
-    )
+    const label = JSON.stringify(tier.label || `tier_${index + 1}`)
     let charge = `charge(${JSON.stringify(tier.method)}, quantity, ${formatSeedancePrice(tier.price)})`
     if (
       tier.method === 'per_second' &&
-      (tier.fallback || tier.videoInput === 'with_video') &&
+      tier.videoInput === 'with_video' &&
       tier.videoInputPrice !== undefined
     ) {
       charge += ` + charge("per_second", video_input_durations, ${formatSeedancePrice(tier.videoInputPrice)})`
     }
     const body = `tier(${label}, ${charge})`
-    if (tier.fallback || index === normalized.tiers.length - 1) return body
     let condition = `param("resolution") == ${JSON.stringify((tier.resolution || '').trim())}`
     if (tier.method === 'per_second') {
       const mediaCondition =
@@ -164,6 +178,9 @@ export function generateSeedanceExpr(
     }
     return `${condition} ? ${body}`
   })
+  parts.push(
+    `tier(${JSON.stringify(SEEDANCE_UNSUPPORTED_RESOLUTION_TIER)}, charge("per_call", quantity, 0))`
+  )
   return `v2:${parts.join(' : ')}`
 }
 
@@ -242,11 +259,41 @@ export function tryParseSeedanceExpr(
   ) {
     return null
   }
-  const fallbackTier = tiers.at(-1)
-  if (!fallbackTier) {
+  const terminalTier = tiers.at(-1)
+  if (!terminalTier) {
     return null
   }
-  fallbackTier.fallback = true
+  // Seedance expressions always end in an unconditional branch. Remove that
+  // branch when it is the editor's rejection sentinel or a legacy fallback;
+  // keep a standalone unconditional tier as a valid legacy expression.
+  if (
+    isSeedanceUnsupportedResolutionTier(terminalTier) ||
+    (tiers.length > 1 && !terminalTier.resolution)
+  ) {
+    tiers.pop()
+  }
+  if (tiers.length === 1 && !tiers[0].resolution) {
+    const legacyTier = tiers[0]
+    legacyTier.resolution = '480p'
+    if (legacyTier.method === 'per_second') {
+      return normalizeSeedanceConfig({
+        tiers: [
+          {
+            ...legacyTier,
+            videoInput: 'without_video',
+            videoInputPrice: undefined,
+          },
+          {
+            ...legacyTier,
+            videoInput: 'with_video',
+          },
+        ],
+      })
+    }
+  }
+  if (tiers.length === 0) {
+    return null
+  }
   // The grammar above is deliberately strict enough to reject non-Seedance
   // v2 expressions. Do not compare by removing all whitespace from the full
   // expression: that would also remove meaningful spaces inside JSON strings
