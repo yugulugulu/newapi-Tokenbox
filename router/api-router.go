@@ -151,6 +151,25 @@ func SetApiRouter(router *gin.Engine) {
 				adminRoute.DELETE("/:id/2fa", controller.AdminDisable2FA)
 			}
 		}
+		commissionRoute := apiRouter.Group("/commission")
+		commissionRoute.Use(middleware.UserAuth())
+		{
+			commissionRoute.GET("/self", controller.GetCommissionSelf)
+			commissionRoute.GET("/self/records", controller.GetCommissionSelfRecords)
+			commissionRoute.GET("/self/referrals", controller.GetCommissionSelfReferrals)
+			commissionRoute.GET("/self/code", controller.GetAffCode)
+		}
+		commissionAdminRoute := apiRouter.Group("/commission/admin")
+		commissionAdminRoute.Use(middleware.AdminAuth())
+		{
+			commissionAdminRoute.GET("/settings", controller.GetCommissionSettings)
+			commissionAdminRoute.PUT("/settings", controller.UpdateCommissionSettings)
+			commissionAdminRoute.GET("/agents", controller.ListCommissionAgents)
+			commissionAdminRoute.PUT("/agents/:userId", controller.UpdateCommissionAgent)
+			commissionAdminRoute.GET("/summary", controller.GetCommissionSummary)
+			commissionAdminRoute.GET("/records", controller.GetCommissionRecords)
+			commissionAdminRoute.GET("/agents/:userId/referrals", controller.GetCommissionAgentReferrals)
+		}
 
 		// Subscription billing (plans, purchase, admin management)
 		subscriptionRoute := apiRouter.Group("/subscription")

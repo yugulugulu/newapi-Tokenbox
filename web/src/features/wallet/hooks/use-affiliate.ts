@@ -30,7 +30,7 @@ import { generateAffiliateLink } from '../lib'
 // Affiliate Hook
 // ============================================================================
 
-export function useAffiliate() {
+export function useAffiliate(enabled = true) {
   const [affiliateCode, setAffiliateCode] = useState<string>('')
   const [affiliateLink, setAffiliateLink] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -75,7 +75,7 @@ export function useAffiliate() {
 
       toast.error(response.message || i18next.t('Transfer failed'))
       return false
-    } catch (_error) {
+    } catch {
       toast.error(i18next.t('Transfer failed'))
       return false
     } finally {
@@ -84,8 +84,9 @@ export function useAffiliate() {
   }, [])
 
   useEffect(() => {
+    if (!enabled) return
     fetchAffiliateCode()
-  }, [fetchAffiliateCode])
+  }, [enabled, fetchAffiliateCode])
 
   return {
     affiliateCode,

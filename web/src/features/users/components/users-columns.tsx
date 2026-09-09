@@ -219,6 +219,21 @@ export function useUsersColumns(): ColumnDef<User>[] {
       meta: { mobileOrder: 20 },
     },
     {
+      accessorKey: 'parent_user_id',
+      header: t('Parent User UID'),
+      cell: ({ row }) => {
+        const parentUserId = row.original.parent_user_id
+        return (
+          <span className='text-muted-foreground text-sm'>
+            {parentUserId && parentUserId > 0 ? parentUserId : t('None')}
+          </span>
+        )
+      },
+      enableSorting: false,
+      size: 140,
+      meta: { mobileHidden: true },
+    },
+    {
       id: 'invite_info',
       header: t('Invite Info'),
       cell: ({ row }) => {

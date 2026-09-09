@@ -24,6 +24,7 @@ import {
   PowerOff,
   ArrowUp,
   ArrowDown,
+  Handshake,
   KeyRound,
   ShieldAlert,
   Link2,
@@ -47,6 +48,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UserSubscriptionsDialog } from '@/features/subscriptions/components/dialogs/user-subscriptions-dialog'
+import { useAuthStore } from '@/stores/auth-store'
 
 import { manageUser, resetUserPasskey, resetUserTwoFA } from '../api'
 import {
@@ -68,6 +70,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const { t } = useTranslation()
   const user = row.original
   const { setOpen, setCurrentRow, triggerRefresh } = useUsers()
+  const currentUser = useAuthStore((s) => s.auth.user)
   const [resetPasskeyOpen, setResetPasskeyOpen] = useState(false)
   const [resetTwoFAOpen, setResetTwoFAOpen] = useState(false)
   const [bindingDialogOpen, setBindingDialogOpen] = useState(false)
@@ -132,6 +135,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   }
 
   const isDisabled = user.status === USER_STATUS.DISABLED
+  const isAgent = user.role === USER_ROLE.AGENT
   const isAdmin = user.role >= USER_ROLE.ADMIN
   const isRoot = user.role === USER_ROLE.ROOT
 
@@ -180,7 +184,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
         )}
 
-        {isAdmin && !isRoot && (
+        {(isAgent || isAdmin) && !isRoot && (
           <DropdownMenuItem onClick={() => handleManage('demote')}>
             {t('Demote')}
             <DropdownMenuShortcut>
@@ -189,9 +193,18 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
         )}
 
-        {!isAdmin && (
+        {user.role < USER_ROLE.AGENT && (
+          <DropdownMenuItem onClick={() => handleManage('promote_agent')}>
+            {t('Promote to Agent')}
+            <DropdownMenuShortcut>
+              <Handshake size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+
+        {!isAdmin && currentUser?.role === USER_ROLE.ROOT && (
           <DropdownMenuItem onClick={() => handleManage('promote')}>
-            {t('Promote')}
+            {t('Promote to Admin')}
             <DropdownMenuShortcut>
               <ArrowUp size={16} />
             </DropdownMenuShortcut>

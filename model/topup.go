@@ -12,16 +12,18 @@ import (
 )
 
 type TopUp struct {
-	Id              int     `json:"id"`
-	UserId          int     `json:"user_id" gorm:"index"`
-	Amount          int64   `json:"amount"`
-	Money           float64 `json:"money"`
-	TradeNo         string  `json:"trade_no" gorm:"unique;type:varchar(255);index"`
-	PaymentMethod   string  `json:"payment_method" gorm:"type:varchar(50)"`
-	PaymentProvider string  `json:"payment_provider" gorm:"type:varchar(50);default:''"`
-	CreateTime      int64   `json:"create_time"`
-	CompleteTime    int64   `json:"complete_time"`
-	Status          string  `json:"status"`
+	Id                 int     `json:"id"`
+	UserId             int     `json:"user_id" gorm:"index"`
+	Amount             int64   `json:"amount"`
+	Money              float64 `json:"money"`
+	PaymentAmountMinor int64   `json:"payment_amount_minor"`
+	PaymentCurrency    string  `json:"payment_currency" gorm:"type:varchar(16);index"`
+	TradeNo            string  `json:"trade_no" gorm:"unique;type:varchar(255);index"`
+	PaymentMethod      string  `json:"payment_method" gorm:"type:varchar(50)"`
+	PaymentProvider    string  `json:"payment_provider" gorm:"type:varchar(50);default:''"`
+	CreateTime         int64   `json:"create_time"`
+	CompleteTime       int64   `json:"complete_time"`
+	Status             string  `json:"status"`
 }
 
 const (
@@ -146,7 +148,7 @@ func Recharge(referenceId string, customerId string, callerIp string) (err error
 			return err
 		}
 
-		return nil
+		return CreateCommissionForTopUpWithFallbackTx(tx, topUp, "USD")
 	})
 
 	if err != nil {
@@ -157,6 +159,47 @@ func Recharge(referenceId string, customerId string, callerIp string) (err error
 	RecordTopupLog(topUp.UserId, fmt.Sprintf("使用在线充值成功，充值金额: %v，支付金额：%d", logger.FormatQuota(int(quota)), topUp.Amount), callerIp, topUp.PaymentMethod, PaymentMethodStripe)
 
 	return nil
+}
+
+// RechargeEpay completes an Epay top-up and credits quota and commission in one transaction.
+func RechargeEpay(tradeNo string, paymentMethod string) (int, error) {
+	if tradeNo == "" {
+		return 0, errors.New("未提供支付单号")
+	}
+	refCol := "`trade_no`"
+	if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
+		refCol = `"trade_no"`
+	}
+	var quotaToAdd int
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		topUp := &TopUp{}
+		if err := lockForUpdate(tx).Where(refCol+" = ?", tradeNo).First(topUp).Error; err != nil {
+			return ErrTopUpNotFound
+		}
+		if topUp.PaymentProvider != PaymentProviderEpay {
+			return ErrPaymentMethodMismatch
+		}
+		if topUp.Status != common.TopUpStatusPending {
+			return ErrTopUpStatusInvalid
+		}
+		quotaToAdd = common.QuotaFromDecimal(decimal.NewFromInt(topUp.Amount).Mul(decimal.NewFromFloat(common.QuotaPerUnit)))
+		if quotaToAdd <= 0 {
+			return errors.New("无效的充值额度")
+		}
+		if paymentMethod != "" {
+			topUp.PaymentMethod = paymentMethod
+		}
+		topUp.CompleteTime = common.GetTimestamp()
+		topUp.Status = common.TopUpStatusSuccess
+		if err := tx.Save(topUp).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&User{}).Where("id = ?", topUp.UserId).Update("quota", gorm.Expr("quota + ?", quotaToAdd)).Error; err != nil {
+			return err
+		}
+		return CreateCommissionForTopUpWithFallbackTx(tx, topUp, "CNY")
+	})
+	return quotaToAdd, err
 }
 
 // topUpQueryWindowSeconds 限制充值记录查询的时间窗口（秒）。
@@ -353,11 +396,11 @@ func ManualCompleteTopUp(tradeNo string, callerIp string) error {
 		// - 其他订单（如易支付）：Amount 为美元数量，* QuotaPerUnit
 		if topUp.PaymentProvider == PaymentProviderStripe {
 			dQuotaPerUnit := decimal.NewFromFloat(common.QuotaPerUnit)
-			quotaToAdd = int(decimal.NewFromFloat(topUp.Money).Mul(dQuotaPerUnit).IntPart())
+			quotaToAdd = common.QuotaFromDecimal(decimal.NewFromFloat(topUp.Money).Mul(dQuotaPerUnit))
 		} else {
 			dAmount := decimal.NewFromInt(topUp.Amount)
 			dQuotaPerUnit := decimal.NewFromFloat(common.QuotaPerUnit)
-			quotaToAdd = int(dAmount.Mul(dQuotaPerUnit).IntPart())
+			quotaToAdd = common.QuotaFromDecimal(dAmount.Mul(dQuotaPerUnit))
 		}
 		if quotaToAdd <= 0 {
 			return errors.New("无效的充值额度")
@@ -372,6 +415,13 @@ func ManualCompleteTopUp(tradeNo string, callerIp string) error {
 
 		// 增加用户额度（立即写库，保持一致性）
 		if err := tx.Model(&User{}).Where("id = ?", topUp.UserId).Update("quota", gorm.Expr("quota + ?", quotaToAdd)).Error; err != nil {
+			return err
+		}
+		defaultCurrency := "USD"
+		if topUp.PaymentProvider == PaymentProviderEpay {
+			defaultCurrency = "CNY"
+		}
+		if err := CreateCommissionForTopUpWithFallbackTx(tx, topUp, defaultCurrency); err != nil {
 			return err
 		}
 
@@ -451,7 +501,7 @@ func RechargeCreem(referenceId string, customerEmail string, customerName string
 			return err
 		}
 
-		return nil
+		return CreateCommissionForTopUpWithFallbackTx(tx, topUp, "USD")
 	})
 
 	if err != nil {
@@ -497,7 +547,7 @@ func RechargeWaffo(tradeNo string, callerIp string) (err error) {
 
 		dAmount := decimal.NewFromInt(topUp.Amount)
 		dQuotaPerUnit := decimal.NewFromFloat(common.QuotaPerUnit)
-		quotaToAdd = int(dAmount.Mul(dQuotaPerUnit).IntPart())
+		quotaToAdd = common.QuotaFromDecimal(dAmount.Mul(dQuotaPerUnit))
 		if quotaToAdd <= 0 {
 			return errors.New("无效的充值额度")
 		}
@@ -512,7 +562,7 @@ func RechargeWaffo(tradeNo string, callerIp string) (err error) {
 			return err
 		}
 
-		return nil
+		return CreateCommissionForTopUpWithFallbackTx(tx, topUp, "USD")
 	})
 
 	if err != nil {
@@ -558,7 +608,7 @@ func RechargeWaffoPancake(tradeNo string) (err error) {
 			return errors.New("充值订单状态错误")
 		}
 
-		quotaToAdd = int(decimal.NewFromInt(topUp.Amount).Mul(decimal.NewFromFloat(common.QuotaPerUnit)).IntPart())
+		quotaToAdd = common.QuotaFromDecimal(decimal.NewFromInt(topUp.Amount).Mul(decimal.NewFromFloat(common.QuotaPerUnit)))
 		if quotaToAdd <= 0 {
 			return errors.New("无效的充值额度")
 		}
@@ -573,7 +623,7 @@ func RechargeWaffoPancake(tradeNo string) (err error) {
 			return err
 		}
 
-		return nil
+		return CreateCommissionForTopUpWithFallbackTx(tx, topUp, "USD")
 	})
 
 	if err != nil {

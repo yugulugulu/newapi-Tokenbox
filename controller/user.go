@@ -261,18 +261,19 @@ func Register(c *gin.Context) {
 		return
 	}
 	affCode := user.AffCode // this code is the inviter's code, not the user's own code
-	inviterId, _ := model.GetUserIdByAffCode(affCode)
+	parentUserId := model.ResolveCommissionParentByAffCode(affCode)
 	cleanUser := model.User{
-		Username:    user.Username,
-		Password:    user.Password,
-		DisplayName: user.Username,
-		InviterId:   inviterId,
-		Role:        common.RoleCommonUser, // 明确设置角色为普通用户
+		Username:     user.Username,
+		Password:     user.Password,
+		DisplayName:  user.Username,
+		InviterId:    parentUserId,
+		ParentUserId: parentUserId,
+		Role:         common.RoleCommonUser, // 明确设置角色为普通用户
 	}
 	if common.EmailVerificationEnabled {
 		cleanUser.Email = user.Email
 	}
-	if err := cleanUser.Insert(inviterId); err != nil {
+	if err := cleanUser.Insert(parentUserId); err != nil {
 		if errors.Is(err, model.ErrEmailAlreadyTaken) {
 			common.ApiErrorI18n(c, i18n.MsgUserEmailAlreadyTaken)
 			return
@@ -460,6 +461,11 @@ func GetAffCode(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	_, _, eligible := model.GetCommissionEligibility(id)
+	if !eligible {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "当前用户无反佣推荐资格"})
+		return
+	}
 	if user.AffCode == "" {
 		user.AffCode = common.GetRandomString(4)
 		if err := user.Update(false); err != nil {
@@ -530,6 +536,7 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 		"aff_quota":         user.AffQuota,
 		"aff_history_quota": user.AffHistoryQuota,
 		"inviter_id":        user.InviterId,
+		"parent_user_id":    user.ParentUserId,
 		"linux_do_id":       user.LinuxDOId,
 		"setting":           user.Setting,
 		"stripe_customer":   user.StripeCustomer,
@@ -1032,6 +1039,9 @@ func CreateUser(c *gin.Context) {
 		if err := cleanUser.InsertWithTx(tx, 0); err != nil {
 			return err
 		}
+		if err := model.ValidateCommissionAgentRole(tx, cleanUser.Id, cleanUser.Role); err != nil {
+			return err
+		}
 		touched, err := updateAdminPermissionsForUserInTx(c, tx, cleanUser.Id, cleanUser.Role, user.AdminPermissions)
 		authzTouched = touched
 		return err
@@ -1149,7 +1159,21 @@ func ManageUser(c *gin.Context) {
 			common.ApiErrorI18n(c, i18n.MsgUserAlreadyAdmin)
 			return
 		}
+		if err := model.ValidateCommissionAgentRoleChange(model.DB, user.Id); err != nil {
+			common.ApiError(c, err)
+			return
+		}
 		user.Role = common.RoleAdminUser
+	case "promote_agent":
+		if user.Role != common.RoleCommonUser && user.Role != common.RoleGuestUser {
+			common.ApiErrorI18n(c, i18n.MsgUserAlreadyAdmin)
+			return
+		}
+		if err := model.ValidateCommissionAgentRoleChange(model.DB, user.Id); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		user.Role = common.RoleAgentUser
 	case "demote":
 		if user.Role == common.RoleRootUser {
 			common.ApiErrorI18n(c, i18n.MsgUserCannotDemoteRootUser)
@@ -1213,6 +1237,9 @@ func ManageUser(c *gin.Context) {
 	if req.Action == "demote" {
 		if err := model.DB.Transaction(func(tx *gorm.DB) error {
 			if err := user.UpdateWithTx(tx, false); err != nil {
+				return err
+			}
+			if err := model.DisableCommissionAgent(tx, user.Id); err != nil {
 				return err
 			}
 			return authz.ClearUserAuthorizationInTx(tx, user.Id)
