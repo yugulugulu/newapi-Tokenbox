@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useNavigate } from '@tanstack/react-router'
 import type { Row } from '@tanstack/react-table'
 import {
   Pencil,
@@ -29,6 +30,8 @@ import {
   ShieldAlert,
   Link2,
   CreditCard,
+  HandCoins,
+  GitBranch,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -55,10 +58,12 @@ import {
   USER_STATUS,
   USER_ROLE,
   ERROR_MESSAGES,
+  isCommissionParticipantRole,
   isUserDeleted,
 } from '../constants'
 import { getUserActionMessage } from '../lib'
 import type { User, ManageUserAction } from '../types'
+import { SetUserParentDialog } from './dialogs/set-user-parent-dialog'
 import { UserBindingDialog } from './dialogs/user-binding-dialog'
 import { useUsers } from './users-provider'
 
@@ -71,10 +76,12 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const user = row.original
   const { setOpen, setCurrentRow, triggerRefresh } = useUsers()
   const currentUser = useAuthStore((s) => s.auth.user)
+  const navigate = useNavigate()
   const [resetPasskeyOpen, setResetPasskeyOpen] = useState(false)
   const [resetTwoFAOpen, setResetTwoFAOpen] = useState(false)
   const [bindingDialogOpen, setBindingDialogOpen] = useState(false)
   const [subscriptionsDialogOpen, setSubscriptionsDialogOpen] = useState(false)
+  const [setParentDialogOpen, setSetParentDialogOpen] = useState(false)
 
   const handleEdit = () => {
     setCurrentRow(user)
@@ -202,11 +209,36 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
         )}
 
+        {isCommissionParticipantRole(user.role) && (
+          <DropdownMenuItem
+            onClick={() => void navigate({ to: '/commissions' })}
+          >
+            {t('Configure commission')}
+            <DropdownMenuShortcut>
+              <HandCoins size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+
         {!isAdmin && currentUser?.role === USER_ROLE.ROOT && (
           <DropdownMenuItem onClick={() => handleManage('promote')}>
             {t('Promote to Admin')}
             <DropdownMenuShortcut>
               <ArrowUp size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+
+        {currentUser?.role === USER_ROLE.ROOT && !isRoot && (
+          <DropdownMenuItem
+            onSelect={(event) => {
+              event.preventDefault()
+              setSetParentDialogOpen(true)
+            }}
+          >
+            {t('Set parent user')}
+            <DropdownMenuShortcut>
+              <GitBranch size={16} />
             </DropdownMenuShortcut>
           </DropdownMenuItem>
         )}
@@ -312,6 +344,13 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         open={subscriptionsDialogOpen}
         onOpenChange={setSubscriptionsDialogOpen}
         user={{ id: user.id, username: user.username }}
+        onSuccess={triggerRefresh}
+      />
+
+      <SetUserParentDialog
+        open={setParentDialogOpen}
+        onOpenChange={setSetParentDialogOpen}
+        user={user}
         onSuccess={triggerRefresh}
       />
     </div>

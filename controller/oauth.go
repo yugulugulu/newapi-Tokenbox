@@ -363,7 +363,7 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 			return nil, err
 		}
 	}
-	user.Role = common.RoleCommonUser
+	user.Role = common.RoleAgentUser
 	user.Status = common.UserStatusEnabled
 
 	// Handle affiliate code

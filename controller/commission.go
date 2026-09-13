@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"math"
 	"net/http"
 	"strconv"
@@ -121,10 +122,25 @@ func commissionTimeRange(c *gin.Context) (int64, int64, error) {
 	if err != nil {
 		return 0, 0, err
 	}
+	if startTime > 1_000_000_000_000 {
+		startTime /= 1000
+	}
 	endTime, err := strconv.ParseInt(strings.TrimSpace(c.Query("end_time")), 10, 64)
 	if c.Query("end_time") == "" {
 		endTime = 0
 		err = nil
+	}
+	if err != nil {
+		return 0, 0, err
+	}
+	if endTime > 1_000_000_000_000 {
+		endTime /= 1000
+	}
+	if startTime > 0 && endTime == 0 {
+		endTime = common.GetTimestamp()
+	}
+	if startTime > 0 && endTime > 0 && endTime <= startTime {
+		return 0, 0, errors.New("结束时间必须晚于开始时间")
 	}
 	return startTime, endTime, err
 }
@@ -167,8 +183,13 @@ func GetCommissionAgentReferrals(c *gin.Context) {
 		common.ApiErrorMsg(c, "无效的用户 UID")
 		return
 	}
+	startTime, endTime, err := commissionTimeRange(c)
+	if err != nil {
+		common.ApiErrorMsg(c, "无效的时间范围")
+		return
+	}
 	pageInfo := common.GetPageQuery(c)
-	users, total, err := model.ListCommissionReferrals(agentUserId, c.Query("keyword"), pageInfo)
+	users, total, err := model.ListCommissionReferrals(agentUserId, c.Query("keyword"), startTime, endTime, pageInfo)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -188,18 +209,24 @@ func requireCommissionSelf(c *gin.Context) (*model.User, *model.CommissionAgent,
 }
 
 func GetCommissionSelf(c *gin.Context) {
-	user, agent, ok := requireCommissionSelf(c)
+	user, ok := requireCommissionReadableSelf(c)
 	if !ok {
 		return
 	}
-	rate, source := model.EffectiveCommissionRate(agent)
-	useCustomRate := agent != nil && agent.UseCustomRate
+	_, agent, eligible := model.GetCommissionEligibility(user.Id)
+	rate := 0
+	source := "none"
+	useCustomRate := false
+	if eligible {
+		rate, source = model.EffectiveCommissionRate(agent)
+		useCustomRate = agent != nil && agent.UseCustomRate
+	}
 	common.ApiSuccess(c, gin.H{"user_id": user.Id, "use_custom_rate": useCustomRate,
 		"rate_percent": commissionBasisPointsToPercent(rate), "rate_source": source})
 }
 
 func GetCommissionSelfRecords(c *gin.Context) {
-	if _, _, ok := requireCommissionSelf(c); !ok {
+	if _, ok := requireCommissionReadableSelf(c); !ok {
 		return
 	}
 	pageInfo := common.GetPageQuery(c)
@@ -208,7 +235,7 @@ func GetCommissionSelfRecords(c *gin.Context) {
 		common.ApiErrorMsg(c, "无效的时间范围")
 		return
 	}
-	records, total, err := model.ListCommissionRecords("", startTime, endTime, c.GetInt("id"), pageInfo)
+	records, total, err := model.ListCommissionRecords(c.Query("keyword"), startTime, endTime, c.GetInt("id"), pageInfo)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -219,11 +246,16 @@ func GetCommissionSelfRecords(c *gin.Context) {
 }
 
 func GetCommissionSelfReferrals(c *gin.Context) {
-	if _, _, ok := requireCommissionSelf(c); !ok {
+	if _, ok := requireCommissionReadableSelf(c); !ok {
 		return
 	}
 	pageInfo := common.GetPageQuery(c)
-	users, total, err := model.ListCommissionReferrals(c.GetInt("id"), c.Query("keyword"), pageInfo)
+	startTime, endTime, err := commissionTimeRange(c)
+	if err != nil {
+		common.ApiErrorMsg(c, "无效的时间范围")
+		return
+	}
+	users, total, err := model.ListCommissionReferrals(c.GetInt("id"), c.Query("keyword"), startTime, endTime, pageInfo)
 	if err != nil {
 		common.ApiError(c, err)
 		return

@@ -52,6 +52,7 @@ type CommissionAgentView struct {
 	Role                     int    `json:"role"`
 	Status                   int    `json:"status"`
 	ParentUserId             int    `json:"parent_user_id"`
+	ParentEmail              string `json:"parent_email"`
 	UseCustomRate            bool   `json:"use_custom_rate"`
 	RateBasisPoints          int    `json:"rate_basis_points"`
 	EffectiveRateBasisPoints int    `json:"effective_rate_basis_points" gorm:"-"`
@@ -125,54 +126,9 @@ func GetCommissionEligibility(userId int) (*User, *CommissionAgent, bool) {
 }
 
 func validateCommissionParticipantHierarchy(tx *gorm.DB, userId int) error {
-	var relation struct {
-		ParentUserId      int
-		GrandparentUserId int
-	}
-	if err := tx.Table("users AS target").
-		Select("target.parent_user_id, parent.parent_user_id AS grandparent_user_id").
-		Joins("LEFT JOIN users AS parent ON parent.id = target.parent_user_id").
-		Where("target.id = ?", userId).Scan(&relation).Error; err != nil {
-		return err
-	}
-	participantRoles := []int{common.RoleAgentUser, common.RoleAdminUser}
-	parentIsParticipant := false
-	if relation.ParentUserId > 0 {
-		var parent User
-		if tx.Select("id", "role").First(&parent, relation.ParentUserId).Error == nil {
-			parentIsParticipant = parent.Role == common.RoleAgentUser || parent.Role == common.RoleAdminUser
-		}
-	}
-	if parentIsParticipant && relation.GrandparentUserId > 0 {
-		var grandparent User
-		if tx.Select("id", "role").First(&grandparent, relation.GrandparentUserId).Error == nil &&
-			(grandparent.Role == common.RoleAgentUser || grandparent.Role == common.RoleAdminUser) {
-			return errors.New("一条反佣链最多包含两级代理")
-		}
-	}
-	var childCount int64
-	if err := tx.Model(&User{}).Where("parent_user_id = ? AND role IN ?", userId, participantRoles).Count(&childCount).Error; err != nil {
-		return err
-	}
-	if parentIsParticipant && childCount > 0 {
-		return errors.New("已有代理上级的用户不能再拥有下级代理")
-	}
-
-	// A target with an existing participant child may be promoted only when
-	// that child has no participant descendants; otherwise the change would
-	// create a three-level commission chain.
-	if childCount > 0 {
-		var nestedChildCount int64
-		if err := tx.Table("users AS child").
-			Joins("JOIN users AS grandchild ON grandchild.parent_user_id = child.id").
-			Where("child.parent_user_id = ? AND child.role IN ? AND grandchild.role IN ?", userId, participantRoles, participantRoles).
-			Count(&nestedChildCount).Error; err != nil {
-			return err
-		}
-		if nestedChildCount > 0 {
-			return errors.New("一条反佣链最多包含两级代理")
-		}
-	}
+	// Commission chains are intentionally unlimited. Role and parent
+	// validation still rejects root/self/cycle relationships in the
+	// transaction-aware callers.
 	return nil
 }
 
@@ -192,6 +148,92 @@ func ValidateCommissionAgentRole(tx *gorm.DB, userId int, role int) error {
 		return nil
 	}
 	return ValidateCommissionAgentRoleChange(tx, userId)
+}
+
+// SetCommissionParent changes only the commission parent relationship. The
+// complete hierarchy is checked inside the same transaction so a failed
+// assignment cannot leave a partially updated relationship.
+func SetCommissionParent(userId int, parentUserId int) error {
+	if userId <= 0 || parentUserId < 0 {
+		return errors.New("用户 UID 无效")
+	}
+
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var target User
+		if err := lockForUpdate(tx).Select("id", "role").First(&target, userId).Error; err != nil {
+			return err
+		}
+		if target.Role == common.RoleRootUser {
+			return errors.New("root 用户不能设置反佣上级")
+		}
+
+		if parentUserId > 0 {
+			var parent User
+			if err := lockForUpdate(tx).Select("id", "role", "status").First(&parent, parentUserId).Error; err != nil {
+				return err
+			}
+			if !IsCommissionParticipant(&parent) {
+				return errors.New("上级用户必须是启用的代理或管理员")
+			}
+			if parent.Id == target.Id {
+				return errors.New("用户不能设置自己为上级")
+			}
+		}
+
+		var users []struct {
+			Id           int
+			Role         int
+			ParentUserId int
+		}
+		if err := lockForUpdate(tx).Model(&User{}).
+			Select("id", "role", "parent_user_id").Find(&users).Error; err != nil {
+			return err
+		}
+
+		userById := make(map[int]struct {
+			role   int
+			parent int
+		}, len(users))
+		for _, user := range users {
+			userById[user.Id] = struct {
+				role   int
+				parent int
+			}{role: user.Role, parent: user.ParentUserId}
+		}
+		targetData, ok := userById[target.Id]
+		if !ok {
+			return gorm.ErrRecordNotFound
+		}
+		targetData.parent = parentUserId
+		userById[target.Id] = targetData
+
+		for startId := range userById {
+			visited := make(map[int]bool)
+			currentId := startId
+			for currentId > 0 {
+				if visited[currentId] {
+					return errors.New("设置上级后会形成循环关系")
+				}
+				visited[currentId] = true
+				current, exists := userById[currentId]
+				if !exists {
+					break
+				}
+				currentId = current.parent
+			}
+		}
+
+		return tx.Model(&User{}).Where("id = ?", target.Id).
+			Update("parent_user_id", parentUserId).Error
+	})
+	if err != nil {
+		return err
+	}
+
+	// parent_user_id is not an authentication field, but publishing the
+	// current snapshot keeps the user's cache lifecycle consistent with other
+	// user-management mutations.
+	return PublishUserAuthCache(userId)
 }
 
 func DisableCommissionAgent(tx *gorm.DB, userId int) error {
@@ -335,8 +377,22 @@ func ListCommissionAgents(keyword string, pageInfo *common.PageInfo) ([]Commissi
 		return nil, 0, err
 	}
 	ids := make([]int, 0, len(users))
+	parentIds := make([]int, 0, len(users))
 	for _, user := range users {
 		ids = append(ids, user.Id)
+		if user.ParentUserId > 0 {
+			parentIds = append(parentIds, user.ParentUserId)
+		}
+	}
+	parentEmails := make(map[int]string, len(parentIds))
+	if len(parentIds) > 0 {
+		var parents []User
+		if err := DB.Select("id", "email").Where("id IN ?", parentIds).Find(&parents).Error; err != nil {
+			return nil, 0, err
+		}
+		for _, parent := range parents {
+			parentEmails[parent.Id] = parent.Email
+		}
 	}
 	agentsByUserId := make(map[int]CommissionAgent, len(ids))
 	if len(ids) > 0 {
@@ -364,7 +420,7 @@ func ListCommissionAgents(keyword string, pageInfo *common.PageInfo) ([]Commissi
 		}
 		views = append(views, CommissionAgentView{
 			UserId: user.Id, Username: user.Username, DisplayName: user.DisplayName, Email: user.Email,
-			Role: user.Role, Status: user.Status, ParentUserId: user.ParentUserId,
+			Role: user.Role, Status: user.Status, ParentUserId: user.ParentUserId, ParentEmail: parentEmails[user.ParentUserId],
 			UseCustomRate: useCustomRate, RateBasisPoints: rateBasisPoints,
 			EffectiveRateBasisPoints: rate, RateSource: source,
 		})
@@ -383,7 +439,7 @@ func commissionRecordQuery(keyword string, startTime int64, endTime int64, agent
 		query = query.Where("cr.created_at >= ?", startTime)
 	}
 	if endTime > 0 {
-		query = query.Where("cr.created_at <= ?", endTime)
+		query = query.Where("cr.created_at < ?", endTime)
 	}
 	keyword = strings.TrimSpace(keyword)
 	if keyword != "" {
@@ -410,7 +466,7 @@ func ListCommissionRecords(keyword string, startTime int64, endTime int64, agent
 	var records []CommissionRecordView
 	err := query.Select("cr.*, agent.username AS agent_username, agent.display_name AS agent_display_name, agent.email AS agent_email, " +
 		"descendant.username AS descendant_username, descendant.display_name AS descendant_name, descendant.email AS descendant_email").
-		Order("cr.id DESC").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Scan(&records).Error
+		Order("cr.created_at DESC").Order("cr.id DESC").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Scan(&records).Error
 	return records, total, err
 }
 
@@ -423,8 +479,14 @@ func SummarizeCommissionRecords(keyword string, startTime int64, endTime int64, 
 	return summaries, err
 }
 
-func ListCommissionReferrals(agentUserId int, keyword string, pageInfo *common.PageInfo) ([]User, int64, error) {
+func ListCommissionReferrals(agentUserId int, keyword string, startTime int64, endTime int64, pageInfo *common.PageInfo) ([]User, int64, error) {
 	query := DB.Model(&User{}).Where("parent_user_id = ?", agentUserId)
+	if startTime > 0 {
+		query = query.Where("created_at >= ?", startTime)
+	}
+	if endTime > 0 {
+		query = query.Where("created_at < ?", endTime)
+	}
 	keyword = strings.TrimSpace(keyword)
 	if keyword != "" {
 		like := "%" + strings.ToLower(keyword) + "%"
@@ -436,6 +498,6 @@ func ListCommissionReferrals(agentUserId int, keyword string, pageInfo *common.P
 	}
 	var users []User
 	err := query.Select("id", "username", "display_name", "email", "role", "status", "created_at").
-		Order("id DESC").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Find(&users).Error
+		Order("created_at DESC").Order("id DESC").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Find(&users).Error
 	return users, total, err
 }

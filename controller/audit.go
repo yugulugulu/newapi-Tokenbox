@@ -28,6 +28,7 @@ var auditContentTemplates = map[string]string{
 	"user.passkey_register": "Registered a passkey",
 	"user.passkey_delete":   "Deleted a passkey",
 	"user.reset_passkey":    "Reset the user passkey",
+	"user.parent_update":    "Updated commission parent for user ${target_user_id} to ${parent_user_id}",
 	"option.update":         "Updated system setting ${key}",
 
 	"channel.create":             "Created channel ${name} (type ${type}, count ${count})",
@@ -49,6 +50,11 @@ var auditContentTemplates = map[string]string{
 
 	"subscription.plan_reset":      "Reset active subscriptions for plan ${plan_id}",
 	"subscription.user_plan_reset": "Reset active plan ${plan_id} subscriptions for user ${target_user_id}",
+	"withdrawal.config_create":     "Created withdrawal config ${config_id}",
+	"withdrawal.config_update":     "Updated withdrawal config ${config_id}",
+	"withdrawal.config_delete":     "Deleted withdrawal config ${config_id}",
+	"withdrawal.approve":           "Approved withdrawal ${withdrawal_id} with transaction hash ${tx_hash}",
+	"withdrawal.reject":            "Rejected withdrawal ${withdrawal_id} with reason ${reject_reason}",
 }
 
 // auditContentEN 按 action 模板渲染英文兜底文本；未登记的 action 退回 action 本身。

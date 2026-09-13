@@ -28,16 +28,17 @@ import {
   updateCommissionSettings,
 } from './api'
 import type { CommissionAgent, CommissionRecord } from './types'
+import { getCommissionTimeRange } from './lib/time-range'
+import { CommissionDateRangeFields } from './components/commission-date-range-fields'
 
-const PAGE_SIZE = 20
+const PARTICIPANT_PAGE_SIZE = 5
+const RECORD_PAGE_SIZE = 10
 
-function formatMoney(minor: number, currency: string) {
-  const zeroDecimal = ['IDR', 'JPY', 'KRW', 'VND'].includes(currency)
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: zeroDecimal ? 0 : 2,
-  }).format(minor / (zeroDecimal ? 1 : 100))
+function formatCnyAmount(amount: number) {
+  return `¥${new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount)}`
 }
 
 function displayPerson(username: string, name: string, email: string) {
@@ -46,7 +47,9 @@ function displayPerson(username: string, name: string, email: string) {
 
 function validRate(value: string) {
   const rate = Number(value)
-  return value.trim() !== '' && Number.isFinite(rate) && rate >= 0 && rate <= 100
+  return (
+    value.trim() !== '' && Number.isFinite(rate) && rate >= 0 && rate <= 100
+  )
 }
 
 function AgentRow(props: { agent: CommissionAgent }) {
@@ -103,7 +106,7 @@ function AgentRow(props: { agent: CommissionAgent }) {
         </div>
       </TableCell>
       <TableCell>{props.agent.role === 10 ? t('Admin') : t('Agent')}</TableCell>
-      <TableCell>{props.agent.parent_user_id || t('None')}</TableCell>
+      <TableCell>{props.agent.parent_email || t('None')}</TableCell>
       <TableCell>
         <div className='flex items-center gap-2'>
           <Switch
@@ -156,11 +159,17 @@ function AgentRow(props: { agent: CommissionAgent }) {
 export function Commissions() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const [keyword, setKeyword] = useState('')
+  const [participantKeyword, setParticipantKeyword] = useState('')
+  const [recordKeyword, setRecordKeyword] = useState('')
+  const [appliedRecordKeyword, setAppliedRecordKeyword] = useState('')
   const [agentPage, setAgentPage] = useState(1)
   const [recordPage, setRecordPage] = useState(1)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [appliedDateRange, setAppliedDateRange] = useState({
+    start: '',
+    end: '',
+  })
   const [globalRate, setGlobalRate] = useState('0')
   const [globalRateDirty, setGlobalRateDirty] = useState(false)
 
@@ -183,25 +192,35 @@ export function Commissions() {
     onError: () => toast.error(t('Save failed')),
   })
   const agentsQuery = useQuery({
-    queryKey: ['commission-agents', agentPage, keyword],
-    queryFn: () => getCommissionAgents(agentPage, PAGE_SIZE, keyword),
-    placeholderData: (previous) => previous,
+    queryKey: ['commission-agents', agentPage, participantKeyword],
+    queryFn: () =>
+      getCommissionAgents(agentPage, PARTICIPANT_PAGE_SIZE, participantKeyword),
   })
-  const startTime = startDate
-    ? Math.floor(new Date(`${startDate}T00:00:00`).getTime() / 1000)
-    : 0
-  const endTime = endDate
-    ? Math.floor(new Date(`${endDate}T23:59:59`).getTime() / 1000)
-    : 0
+  const { startTime, endTime } = getCommissionTimeRange(
+    appliedDateRange.start,
+    appliedDateRange.end
+  )
   const summaryQuery = useQuery({
-    queryKey: ['commission-summary', keyword, startTime, endTime],
-    queryFn: () => getCommissionSummary(keyword, startTime, endTime),
+    queryKey: ['commission-summary', appliedRecordKeyword, startTime, endTime],
+    queryFn: () =>
+      getCommissionSummary(appliedRecordKeyword, startTime, endTime),
   })
   const recordsQuery = useQuery({
-    queryKey: ['commission-records', recordPage, keyword, startTime, endTime],
+    queryKey: [
+      'commission-records',
+      recordPage,
+      appliedRecordKeyword,
+      startTime,
+      endTime,
+    ],
     queryFn: () =>
-      getCommissionRecords(recordPage, PAGE_SIZE, keyword, startTime, endTime),
-    placeholderData: (previous) => previous,
+      getCommissionRecords(
+        recordPage,
+        RECORD_PAGE_SIZE,
+        appliedRecordKeyword,
+        startTime,
+        endTime
+      ),
   })
 
   const updateSetting = (
@@ -209,6 +228,12 @@ export function Commissions() {
   ) => settingsMutation.mutate(payload)
   const agentData = agentsQuery.data?.data
   const recordData = recordsQuery.data?.data
+  const cnySummary = (summaryQuery.data?.data?.items ?? []).find(
+    (summary) => summary.currency.toUpperCase() === 'CNY'
+  )
+  const totalRechargeCny = (cnySummary?.payment_amount_minor ?? 0) / 100
+  const totalCommissionCny =
+    (cnySummary?.commission_amount_minor ?? 0) / 100
 
   return (
     <SectionPageLayout>
@@ -220,55 +245,57 @@ export function Commissions() {
           <section className='border-border grid gap-4 rounded-lg border p-4'>
             <div>
               <h3 className='font-semibold'>{t('Commission Settings')}</h3>
-              <p className='text-muted-foreground text-sm'>
-                {t('Configure the global switch and fallback commission rate.')}
-              </p>
             </div>
             <div className='grid gap-4 md:grid-cols-3'>
-              <label className='flex items-center justify-between gap-3'>
-                <span>{t('Commission enabled')}</span>
+              <label className='flex min-h-10 items-center justify-between gap-3'>
+                <span>{t('Commission master switch')}</span>
                 <Switch
+                  aria-label={t('Commission master switch')}
                   checked={settings?.enabled ?? false}
                   onCheckedChange={(checked) =>
                     updateSetting({ enabled: checked })
                   }
                 />
               </label>
-              <label className='flex items-center justify-between gap-3'>
-                <span>{t('Global rate enabled')}</span>
+              <label className='flex min-h-10 items-center justify-between gap-3'>
+                <span>{t('Enable global default rate')}</span>
                 <Switch
+                  aria-label={t('Enable global default rate')}
                   checked={settings?.global_rate_enabled ?? false}
                   onCheckedChange={(checked) =>
                     updateSetting({ global_rate_enabled: checked })
                   }
                 />
               </label>
-              <div className='flex items-center gap-2'>
-                <Label htmlFor='global-rate'>{t('Global rate')}</Label>
-                <Input
-                  id='global-rate'
-                  type='number'
-                  min='0'
-                  max='100'
-                  step='0.01'
-                  value={displayedGlobalRate}
-                  onChange={(event) => {
-                    setGlobalRate(event.target.value)
-                    setGlobalRateDirty(true)
-                  }}
-                  onBlur={() => {
-                    if (!validRate(displayedGlobalRate)) {
-                      toast.error(t('Rate must be between 0 and 100'))
+              <div className='grid gap-1'>
+                <Label htmlFor='global-rate'>{t('Global default rate')}</Label>
+                <div className='flex items-center gap-2'>
+                  <Input
+                    id='global-rate'
+                    type='number'
+                    min='0'
+                    max='100'
+                    step='0.01'
+                    value={displayedGlobalRate}
+                    onChange={(event) => {
+                      setGlobalRate(event.target.value)
+                      setGlobalRateDirty(true)
+                    }}
+                    onBlur={() => {
+                      if (!validRate(displayedGlobalRate)) {
+                        toast.error(t('Rate must be between 0 and 100'))
+                        setGlobalRateDirty(false)
+                        return
+                      }
+                      updateSetting({
+                        global_rate_percent: Number(displayedGlobalRate),
+                      })
                       setGlobalRateDirty(false)
-                      return
-                    }
-                    updateSetting({
-                      global_rate_percent: Number(displayedGlobalRate),
-                    })
-                    setGlobalRateDirty(false)
-                  }}
-                />
-                <span>%</span>
+                    }}
+                    className='min-w-0 flex-1'
+                  />
+                  <span>%</span>
+                </div>
               </div>
             </div>
           </section>
@@ -287,11 +314,10 @@ export function Commissions() {
                 <Search className='text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2' />
                 <Input
                   className='pl-8'
-                  value={keyword}
+                  value={participantKeyword}
                   onChange={(event) => {
-                    setKeyword(event.target.value)
+                    setParticipantKeyword(event.target.value)
                     setAgentPage(1)
-                    setRecordPage(1)
                   }}
                   placeholder={t('Search UID, email or name')}
                 />
@@ -303,7 +329,7 @@ export function Commissions() {
                   <TableRow>
                     <TableHead>{t('Participant')}</TableHead>
                     <TableHead>{t('Role')}</TableHead>
-                    <TableHead>{t('Parent UID')}</TableHead>
+                    <TableHead>{t('Parent email')}</TableHead>
                     <TableHead>{t('Individual rate')}</TableHead>
                     <TableHead>{t('Effective rate')}</TableHead>
                     <TableHead>{t('Rate source')}</TableHead>
@@ -319,75 +345,83 @@ export function Commissions() {
             <Pager
               page={agentData?.page ?? agentPage}
               total={agentData?.total ?? 0}
+              pageSize={PARTICIPANT_PAGE_SIZE}
               onPageChange={setAgentPage}
             />
           </section>
 
           <section className='grid gap-4 md:grid-cols-2'>
-            {(summaryQuery.data?.data?.items ?? []).map((summary) => (
-              <div
-                key={summary.currency}
-                className='border-border rounded-lg border p-4'
-              >
-                <div className='text-muted-foreground text-sm'>
-                  {summary.currency}
-                </div>
-                <div className='mt-2 grid grid-cols-2 gap-3'>
-                  <div>
-                    <div className='text-muted-foreground text-xs'>
-                      {t('Recharge amount')}
-                    </div>
-                    <div className='font-semibold'>
-                      {formatMoney(
-                        summary.payment_amount_minor,
-                        summary.currency
-                      )}
-                    </div>
+            <div className='border-border rounded-lg border p-4 md:col-span-2'>
+              <div className='text-muted-foreground text-sm'>
+                {t('Current filter totals')}
+              </div>
+              <div className='mt-2 grid gap-4 sm:grid-cols-2'>
+                <div>
+                  <div className='text-muted-foreground text-xs'>
+                    {t('Total recharge amount')}
                   </div>
-                  <div>
-                    <div className='text-muted-foreground text-xs'>
-                      {t('Commission amount')}
-                    </div>
-                    <div className='font-semibold'>
-                      {formatMoney(
-                        summary.commission_amount_minor,
-                        summary.currency
-                      )}
-                    </div>
+                  <div className='text-lg font-semibold'>
+                    {formatCnyAmount(totalRechargeCny)}
+                  </div>
+                </div>
+                <div>
+                  <div className='text-muted-foreground text-xs'>
+                    {t('Total commission amount')}
+                  </div>
+                  <div className='text-lg font-semibold'>
+                    {formatCnyAmount(totalCommissionCny)}
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
           </section>
 
           <section className='border-border overflow-hidden rounded-lg border'>
-            <div className='flex flex-wrap items-end gap-3 border-b p-4'>
-              <div className='grid gap-1'>
-                <Label htmlFor='start-date'>{t('Start date')}</Label>
-                <Input
-                  id='start-date'
-                  type='date'
-                  value={startDate}
-                  onChange={(event) => {
-                    setStartDate(event.target.value)
+            <div className='flex flex-wrap items-end justify-between gap-3 border-b p-4'>
+              <div>
+                <h3 className='font-semibold'>{t('Commission Details')}</h3>
+                <p className='text-muted-foreground text-sm'>
+                  {t('Records: {{count}}', { count: recordData?.total ?? 0 })}
+                </p>
+              </div>
+              <div className='flex flex-wrap items-end gap-3'>
+                <div className='grid gap-1'>
+                  <Label htmlFor='commission-record-search'>
+                    {t('Search users')}
+                  </Label>
+                  <div className='relative w-full sm:w-72'>
+                    <Search className='text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2' />
+                    <Input
+                      id='commission-record-search'
+                      className='pl-8'
+                      value={recordKeyword}
+                      onChange={(event) => {
+                        setRecordKeyword(event.target.value)
+                        setRecordPage(1)
+                      }}
+                      placeholder={t('Search user email, username or UID')}
+                    />
+                  </div>
+                </div>
+                <CommissionDateRangeFields
+                  idPrefix='commission-records'
+                  startDate={startDate}
+                  endDate={endDate}
+                  onStartDateChange={setStartDate}
+                  onEndDateChange={setEndDate}
+                />
+                <Button
+                  size='sm'
+                  variant='outline'
+                  onClick={() => {
+                    setAppliedRecordKeyword(recordKeyword)
+                    setAppliedDateRange({ start: startDate, end: endDate })
                     setRecordPage(1)
                   }}
-                />
-              </div>
-              <div className='grid gap-1'>
-                <Label htmlFor='end-date'>{t('End date')}</Label>
-                <Input
-                  id='end-date'
-                  type='date'
-                  value={endDate}
-                  onChange={(event) => {
-                    setEndDate(event.target.value)
-                    setRecordPage(1)
-                  }}
-                />
-              </div>
-              <div className='text-muted-foreground text-sm'>
-                {t('Records: {{count}}', { count: recordData?.total ?? 0 })}
+                >
+                  <Search />
+                  {t('Search')}
+                </Button>
               </div>
             </div>
             <div className='overflow-x-auto'>
@@ -426,15 +460,11 @@ export function Commissions() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {formatMoney(
-                          record.payment_amount_minor,
-                          record.payment_currency
-                        )}
+                        {formatCnyAmount(record.payment_amount_minor / 100)}
                       </TableCell>
                       <TableCell>
-                        {formatMoney(
-                          record.commission_amount_minor,
-                          record.payment_currency
+                        {formatCnyAmount(
+                          record.commission_amount_minor / 100
                         )}
                       </TableCell>
                       <TableCell>
@@ -451,6 +481,7 @@ export function Commissions() {
             <Pager
               page={recordData?.page ?? recordPage}
               total={recordData?.total ?? 0}
+              pageSize={RECORD_PAGE_SIZE}
               onPageChange={setRecordPage}
             />
           </section>
@@ -463,10 +494,11 @@ export function Commissions() {
 function Pager(props: {
   page: number
   total: number
+  pageSize: number
   onPageChange: (page: number) => void
 }) {
   const { t } = useTranslation()
-  const pages = Math.max(1, Math.ceil(props.total / PAGE_SIZE))
+  const pages = Math.max(1, Math.ceil(props.total / props.pageSize))
   return (
     <div className='flex items-center justify-end gap-2 border-t p-3'>
       <Button

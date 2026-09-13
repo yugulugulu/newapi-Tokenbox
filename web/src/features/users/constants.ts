@@ -96,6 +96,14 @@ export const USER_ROLES = {
   },
 } as const
 
+export const isCommissionParticipantRole = (role: number): boolean => {
+  return role === USER_ROLE.AGENT || role === USER_ROLE.ADMIN
+}
+
+export const shouldShowAgentEligibleBadge = (role: number): boolean => {
+  return role === USER_ROLE.ADMIN
+}
+
 export const getUserRoleOptions = (t: (key: string) => string) => [
   { label: t('User'), value: String(USER_ROLE.USER), icon: User },
   { label: t('Agent'), value: String(USER_ROLE.AGENT), icon: Handshake },

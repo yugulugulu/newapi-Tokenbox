@@ -7,7 +7,11 @@ import type {
   CommissionSelf,
   CommissionSettings,
   CommissionSummary,
+  CommissionWithdrawal,
+  CommissionWithdrawalBalance,
   PageResponse,
+  WithdrawalConfig,
+  WithdrawalRequestView,
 } from './types'
 
 export async function getCommissionSettings() {
@@ -109,9 +113,21 @@ export async function getCommissionCode() {
   return res.data as { data: string }
 }
 
-export async function getCommissionSelfRecords(page: number, pageSize: number) {
+export async function getCommissionSelfRecords(
+  page: number,
+  pageSize: number,
+  keyword = '',
+  startTime = 0,
+  endTime = 0
+) {
   const res = await api.get('/api/commission/self/records', {
-    params: { p: page, page_size: pageSize },
+    params: {
+      p: page,
+      page_size: pageSize,
+      keyword: keyword || undefined,
+      start_time: startTime || undefined,
+      end_time: endTime || undefined,
+    },
     skipErrorHandler: true,
   })
   return res.data as { data: PageResponse<CommissionRecord> }
@@ -119,11 +135,131 @@ export async function getCommissionSelfRecords(page: number, pageSize: number) {
 
 export async function getCommissionSelfReferrals(
   page: number,
-  pageSize: number
+  pageSize: number,
+  keyword = '',
+  startTime = 0,
+  endTime = 0
 ) {
   const res = await api.get('/api/commission/self/referrals', {
-    params: { p: page, page_size: pageSize },
+    params: {
+      p: page,
+      page_size: pageSize,
+      keyword: keyword || undefined,
+      start_time: startTime || undefined,
+      end_time: endTime || undefined,
+    },
     skipErrorHandler: true,
   })
   return res.data as { data: PageResponse<CommissionReferral> }
+}
+
+export async function getCommissionSelfBalance() {
+  const res = await api.get('/api/commission/self/balance', {
+    skipErrorHandler: true,
+  })
+  return res.data as { data: CommissionWithdrawalBalance }
+}
+
+export async function transferCommissionBalanceToQuota() {
+  const res = await api.post(
+    '/api/commission/self/transfer-to-balance',
+    undefined,
+    { skipErrorHandler: true }
+  )
+  return res.data as { data: { quota: number } }
+}
+
+export async function createCommissionSelfWithdrawal(address: string) {
+  const res = await api.post(
+    '/api/commission/self/withdrawals',
+    { address },
+    { skipErrorHandler: true }
+  )
+  return res.data as { data: CommissionWithdrawal }
+}
+
+export async function getCommissionSelfWithdrawals(
+  page: number,
+  pageSize: number,
+  startTime = 0,
+  endTime = 0
+) {
+  const res = await api.get('/api/commission/self/withdrawals', {
+    params: {
+      p: page,
+      page_size: pageSize,
+      start_time: startTime || undefined,
+      end_time: endTime || undefined,
+    },
+    skipErrorHandler: true,
+  })
+  return res.data as { data: PageResponse<CommissionWithdrawal> }
+}
+
+export async function getWithdrawalConfigs() {
+  const res = await api.get('/api/withdrawals/configs')
+  return res.data as { data: { items: WithdrawalConfig[] } }
+}
+
+export async function createWithdrawalConfig(payload: {
+  exchange_rate: number
+  fee_usdt: number
+  min_amount_usdt: number
+  enabled: boolean
+}) {
+  const res = await api.post('/api/withdrawals/configs', payload)
+  return res.data as { data: WithdrawalConfig }
+}
+
+export async function updateWithdrawalConfig(
+  id: number,
+  payload: {
+    exchange_rate: number
+    fee_usdt: number
+    min_amount_usdt: number
+    enabled: boolean
+  }
+) {
+  const res = await api.put(`/api/withdrawals/configs/${id}`, payload)
+  return res.data as { data: WithdrawalConfig }
+}
+
+export async function deleteWithdrawalConfig(id: number) {
+  const res = await api.delete(`/api/withdrawals/configs/${id}`)
+  return res.data
+}
+
+export async function getWithdrawalRequests(params: {
+  page: number
+  pageSize: number
+  keyword?: string
+  status?: string
+  startTime?: number
+  endTime?: number
+}) {
+  const res = await api.get('/api/withdrawals', {
+    params: {
+      p: params.page,
+      page_size: params.pageSize,
+      keyword: params.keyword || undefined,
+      status: params.status || undefined,
+      start_time: params.startTime || undefined,
+      end_time: params.endTime || undefined,
+    },
+  })
+  return res.data as { data: PageResponse<WithdrawalRequestView> }
+}
+
+export async function approveWithdrawalRequest(id: number, txHash: string) {
+  const res = await api.post(`/api/withdrawals/${id}/approve`, {
+    tx_hash: txHash,
+  })
+  return res.data as { data: WithdrawalRequestView }
+}
+
+export async function rejectWithdrawalRequest(id: number, reason: string) {
+  const res = await api.post(`/api/withdrawals/${id}/reject`, {
+    reject_reason: reason,
+  })
+  return res.data as { data: WithdrawalRequestView }
 }

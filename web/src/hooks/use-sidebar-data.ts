@@ -142,6 +142,18 @@ export function useSidebarData(): SidebarData {
             requiredRole: ROLE.ADMIN,
           },
           {
+            title: t('Withdrawal Management'),
+            url: '/withdrawals',
+            icon: Wallet,
+            requiredRole: ROLE.SUPER_ADMIN,
+          },
+          {
+            title: t('Withdrawal Settings'),
+            url: '/withdrawal-settings',
+            icon: Settings,
+            requiredRole: ROLE.SUPER_ADMIN,
+          },
+          {
             title: t('Redemption Codes'),
             url: '/redemption-codes',
             icon: Ticket,

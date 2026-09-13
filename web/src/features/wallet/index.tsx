@@ -354,7 +354,7 @@ export function Wallet(props: WalletProps) {
               />
             ) : null}
 
-            <CommissionWalletCard />
+            <CommissionWalletCard onBalanceChanged={fetchUser} />
           </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>

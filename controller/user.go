@@ -32,6 +32,10 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+type SetUserParentRequest struct {
+	ParentUserId *int `json:"parent_user_id"`
+}
+
 var (
 	errUserPasswordUnset    = errors.New("user password is not set")
 	errOriginalPasswordFail = errors.New("original password is incorrect")
@@ -268,7 +272,7 @@ func Register(c *gin.Context) {
 		DisplayName:  user.Username,
 		InviterId:    parentUserId,
 		ParentUserId: parentUserId,
-		Role:         common.RoleCommonUser, // 明确设置角色为普通用户
+		Role:         common.RoleAgentUser,
 	}
 	if common.EmailVerificationEnabled {
 		cleanUser.Email = user.Email
@@ -367,6 +371,31 @@ func SearchUsers(c *gin.Context) {
 	pageInfo.SetItems(users)
 	common.ApiSuccess(c, pageInfo)
 	return
+}
+
+func SetUserParent(c *gin.Context) {
+	userId, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	var request SetUserParentRequest
+	if err := common.DecodeJson(c.Request.Body, &request); err != nil || request.ParentUserId == nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	if err := model.SetCommissionParent(userId, *request.ParentUserId); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	recordManageAuditFor(c, userId, "user.parent_update", map[string]interface{}{
+		"target_user_id": userId,
+		"parent_user_id": *request.ParentUserId,
+	})
+	common.ApiSuccess(c, nil)
 }
 
 func canManageTargetRole(myRole int, targetRole int) bool {

@@ -128,6 +128,17 @@ export async function manageUser(
   return res.data
 }
 
+/** Set or clear a user's commission parent. */
+export async function setUserParent(
+  userId: number,
+  parentUserId: number
+): Promise<ApiResponse> {
+  const res = await api.put(`/api/user/${userId}/parent`, {
+    parent_user_id: parentUserId,
+  })
+  return res.data
+}
+
 /**
  * Adjust user quota atomically (add/subtract/override)
  */
