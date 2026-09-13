@@ -226,6 +226,8 @@ export interface AffiliateTransferRequest {
 export interface UserWalletData {
   /** User ID */
   id: number
+  /** User role */
+  role: number
   /** Username */
   username: string
   /** Current quota balance */

@@ -146,10 +146,51 @@ func SetApiRouter(router *gin.Engine) {
 				adminRoute.DELETE("/:id", controller.DeleteUser)
 				adminRoute.DELETE("/:id/reset_passkey", controller.AdminResetPasskey)
 
+				rootUserRoute := adminRoute.Group("/")
+				rootUserRoute.Use(middleware.RootAuth())
+				rootUserRoute.PUT("/:id/parent", controller.SetUserParent)
+
 				// Admin 2FA routes
 				adminRoute.GET("/2fa/stats", controller.Admin2FAStats)
 				adminRoute.DELETE("/:id/2fa", controller.AdminDisable2FA)
 			}
+		}
+		commissionRoute := apiRouter.Group("/commission")
+		commissionRoute.Use(middleware.UserAuth())
+		{
+			commissionRoute.GET("/self", controller.GetCommissionSelf)
+			commissionRoute.GET("/self/records", controller.GetCommissionSelfRecords)
+			commissionRoute.GET("/self/referrals", controller.GetCommissionSelfReferrals)
+			commissionRoute.GET("/self/balance", controller.GetCommissionSelfBalance)
+			commissionRoute.POST("/self/transfer-to-balance", controller.TransferCommissionSelfBalance)
+			commissionRoute.POST("/self/withdrawals", controller.CreateCommissionSelfWithdrawal)
+			commissionRoute.GET("/self/withdrawals", controller.GetCommissionSelfWithdrawals)
+			commissionRoute.GET("/self/code", controller.GetAffCode)
+		}
+		commissionAdminRoute := apiRouter.Group("/commission/admin")
+		commissionAdminRoute.Use(middleware.AdminAuth())
+		{
+			commissionAdminRoute.GET("/settings", controller.GetCommissionSettings)
+			commissionAdminRoute.PUT("/settings", controller.UpdateCommissionSettings)
+			commissionAdminRoute.GET("/agents", controller.ListCommissionAgents)
+			commissionAdminRoute.PUT("/agents/:userId", controller.UpdateCommissionAgent)
+			commissionAdminRoute.GET("/summary", controller.GetCommissionSummary)
+			commissionAdminRoute.GET("/records", controller.GetCommissionRecords)
+			commissionAdminRoute.GET("/agents/:userId/referrals", controller.GetCommissionAgentReferrals)
+		}
+
+		// Keep the collection route explicit so GET /api/withdrawals is present
+		// even when a Gin version handles an empty group child path differently.
+		apiRouter.GET("/withdrawals", middleware.RootAuth(), controller.GetWithdrawalRequests)
+		withdrawalRoute := apiRouter.Group("/withdrawals")
+		withdrawalRoute.Use(middleware.RootAuth())
+		{
+			withdrawalRoute.POST("/:id/approve", controller.ApproveWithdrawalRequest)
+			withdrawalRoute.POST("/:id/reject", controller.RejectWithdrawalRequest)
+			withdrawalRoute.GET("/configs", controller.GetWithdrawalConfigs)
+			withdrawalRoute.POST("/configs", controller.CreateWithdrawalConfig)
+			withdrawalRoute.PUT("/configs/:id", controller.UpdateWithdrawalConfig)
+			withdrawalRoute.DELETE("/configs/:id", controller.DeleteWithdrawalConfig)
 		}
 
 		// Subscription billing (plans, purchase, admin management)

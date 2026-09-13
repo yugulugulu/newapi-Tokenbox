@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -45,6 +46,9 @@ func InitOptionMap() {
 	common.OptionMap["WeChatAuthEnabled"] = strconv.FormatBool(common.WeChatAuthEnabled)
 	common.OptionMap["TurnstileCheckEnabled"] = strconv.FormatBool(common.TurnstileCheckEnabled)
 	common.OptionMap["RegisterEnabled"] = strconv.FormatBool(common.RegisterEnabled)
+	common.OptionMap["CommissionEnabled"] = strconv.FormatBool(common.CommissionEnabled)
+	common.OptionMap["CommissionGlobalRateEnabled"] = strconv.FormatBool(common.CommissionGlobalRateEnabled)
+	common.OptionMap["CommissionGlobalRateBasisPoints"] = strconv.Itoa(common.CommissionGlobalRateBasisPoints)
 	common.OptionMap["AutomaticDisableChannelEnabled"] = strconv.FormatBool(common.AutomaticDisableChannelEnabled)
 	common.OptionMap["AutomaticEnableChannelEnabled"] = strconv.FormatBool(common.AutomaticEnableChannelEnabled)
 	common.OptionMap["LogConsumeEnabled"] = strconv.FormatBool(common.LogConsumeEnabled)
@@ -206,6 +210,17 @@ func SyncOptions(frequency int) {
 }
 
 func validateOptionValue(key string, value string) error {
+	switch key {
+	case "CommissionEnabled", "CommissionGlobalRateEnabled":
+		if value != "true" && value != "false" {
+			return fmt.Errorf("%s must be true or false", key)
+		}
+	case "CommissionGlobalRateBasisPoints":
+		rate, err := strconv.Atoi(value)
+		if err != nil || rate < 0 || rate > CommissionRateMaxBasisPoints {
+			return fmt.Errorf("commission rate must be between 0 and %d basis points", CommissionRateMaxBasisPoints)
+		}
+	}
 	if key == operation_setting.ToolPriceOptionKey {
 		return operation_setting.ValidateToolPricesJSON(value)
 	}
@@ -323,6 +338,10 @@ func updateOptionMap(key string, value string) (err error) {
 			common.TurnstileCheckEnabled = boolValue
 		case "RegisterEnabled":
 			common.RegisterEnabled = boolValue
+		case "CommissionEnabled":
+			common.CommissionEnabled = boolValue
+		case "CommissionGlobalRateEnabled":
+			common.CommissionGlobalRateEnabled = boolValue
 		case "EmailDomainRestrictionEnabled":
 			common.EmailDomainRestrictionEnabled = boolValue
 		case "EmailAliasRestrictionEnabled":
@@ -390,6 +409,9 @@ func updateOptionMap(key string, value string) (err error) {
 		case "ExposeRatioEnabled":
 			ratio_setting.SetExposeRatioEnabled(boolValue)
 		}
+	}
+	if key == "CommissionGlobalRateBasisPoints" {
+		common.CommissionGlobalRateBasisPoints, _ = strconv.Atoi(value)
 	}
 	switch key {
 	case "EmailDomainWhitelist":

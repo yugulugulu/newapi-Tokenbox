@@ -36,6 +36,7 @@ import {
   USER_STATUS,
   USER_STATUSES,
   USER_ROLES,
+  shouldShowAgentEligibleBadge,
   isUserDeleted,
 } from '../constants'
 import type { User } from '../types'
@@ -207,7 +208,16 @@ export function useUsersColumns(): ColumnDef<User>[] {
             {roleConfig.icon && (
               <roleConfig.icon size={16} className='text-muted-foreground' />
             )}
-            <span className='text-sm'>{t(roleConfig.labelKey)}</span>
+            <div className='flex flex-wrap items-center gap-1'>
+              <span className='text-sm'>{t(roleConfig.labelKey)}</span>
+              {shouldShowAgentEligibleBadge(roleValue) && (
+                <StatusBadge
+                  label={t('Agent eligible')}
+                  variant='neutral'
+                  copyable={false}
+                />
+              )}
+            </div>
           </div>
         )
       },
@@ -217,6 +227,21 @@ export function useUsersColumns(): ColumnDef<User>[] {
       enableSorting: false,
       size: 120,
       meta: { mobileOrder: 20 },
+    },
+    {
+      accessorKey: 'parent_user_id',
+      header: t('Parent User UID'),
+      cell: ({ row }) => {
+        const parentUserId = row.original.parent_user_id
+        return (
+          <span className='text-muted-foreground text-sm'>
+            {parentUserId && parentUserId > 0 ? parentUserId : t('None')}
+          </span>
+        )
+      },
+      enableSorting: false,
+      size: 140,
+      meta: { mobileHidden: true },
     },
     {
       id: 'invite_info',

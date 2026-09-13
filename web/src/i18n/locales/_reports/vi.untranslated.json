@@ -1,0 +1,8 @@
+{
+  "Email, user, or UID": "Email, user, or UID",
+  "Enter the on-chain transaction hash.": "Enter the on-chain transaction hash.",
+  "Enter the rejection reason shown to the user.": "Enter the rejection reason shown to the user.",
+  "Minimum withdrawal required": "The minimum withdrawal amount is {{amount}}.",
+  "Withdrawal address warning": "Please verify the withdrawal address carefully. If it is incorrect, contact the administrator promptly.",
+  "Withdrawal will be sent to the configured BSC address.": "Withdrawal will be sent to the configured BSC address."
+}
