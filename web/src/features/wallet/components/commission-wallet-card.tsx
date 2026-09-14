@@ -34,15 +34,16 @@ import {
 } from '@/components/ui/table'
 import {
   createCommissionSelfWithdrawal,
+  getCommissionSelf,
   getCommissionSelfBalance,
   getCommissionSelfRecords,
   getCommissionSelfReferrals,
   getCommissionSelfWithdrawals,
   transferCommissionBalanceToQuota,
 } from '@/features/commissions/api'
-import type { CommissionWithdrawal } from '@/features/commissions/types'
-import { getCommissionTimeRange } from '@/features/commissions/lib/time-range'
 import { CommissionDateRangeFields } from '@/features/commissions/components/commission-date-range-fields'
+import { getCommissionTimeRange } from '@/features/commissions/lib/time-range'
+import type { CommissionWithdrawal } from '@/features/commissions/types'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { formatQuota, formatTimestampToDate } from '@/lib/format'
 import { ROLE } from '@/lib/roles'
@@ -238,6 +239,12 @@ export function CommissionWalletCard({
     enabled: visible,
     retry: false,
   })
+  const commissionQuery = useQuery({
+    queryKey: ['commission-self'],
+    queryFn: getCommissionSelf,
+    enabled: visible,
+    retry: false,
+  })
   const withdrawalsQuery = useQuery({
     queryKey: [
       'commission-self-withdrawals',
@@ -250,7 +257,7 @@ export function CommissionWalletCard({
         pageSize,
         withdrawalTimeRange.startTime,
         withdrawalTimeRange.endTime
-    ),
+      ),
     enabled: visible,
     retry: false,
   })
@@ -268,7 +275,7 @@ export function CommissionWalletCard({
         appliedRecordKeyword,
         recordTimeRange.startTime,
         recordTimeRange.endTime
-    ),
+      ),
     enabled: visible,
     retry: false,
   })
@@ -286,7 +293,7 @@ export function CommissionWalletCard({
         appliedReferralKeyword,
         referralTimeRange.startTime,
         referralTimeRange.endTime
-    ),
+      ),
     enabled: visible,
     retry: false,
   })
@@ -363,12 +370,22 @@ export function CommissionWalletCard({
           </CardTitle>
         </CardHeader>
         <CardContent className='grid gap-4 p-4'>
-          <div>
-            <div className='text-muted-foreground text-xs'>
-              {t('Invitation count')}
+          <div className='grid gap-4 sm:grid-cols-2'>
+            <div>
+              <div className='text-muted-foreground text-xs'>
+                {t('Invitation count')}
+              </div>
+              <div className='font-semibold'>
+                {referralsQuery.data?.data?.total ?? 0}
+              </div>
             </div>
-            <div className='font-semibold'>
-              {referralsQuery.data?.data?.total ?? 0}
+            <div>
+              <div className='text-muted-foreground text-xs'>
+                {t('Current commission rate')}
+              </div>
+              <div className='font-semibold'>
+                {commissionQuery.data?.data?.rate_percent ?? 0}%
+              </div>
             </div>
           </div>
 
