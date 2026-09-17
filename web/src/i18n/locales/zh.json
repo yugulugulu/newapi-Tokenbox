@@ -5387,6 +5387,58 @@
     "Zero retention": "零数据保留",
     "Zhipu": "智谱",
     "Zhipu V4": "智谱 V4",
-    "Zoom": "缩放"
+    "Zoom": "缩放",
+    "home": {
+      "tokenbox": {
+        "hero": {
+          "badge": "多模型 · 低延迟 · 稳定可靠",
+          "titleLine1": "把所有 Token，",
+          "titleLine2": "装进一个 Box.",
+          "description": "一个接口连接主流模型，透明计费，稳定转发。",
+          "newcomer": "领取新人额度",
+          "pricing": "查看模型价格",
+          "docs": "配置文档",
+          "models": "支持的主流模型"
+        },
+        "status": {
+          "title": "API 状态",
+          "operational": "稳定运行",
+          "gateway": "统一网关",
+          "models": "模型服务商"
+        },
+        "onboarding": {
+          "title": "新手开箱路线",
+          "description": "不用研究复杂配置，三步完成第一次调用。",
+          "createKey": "创建一个API KEY～",
+          "benefit": "新人体验额度",
+          "benefitDescription": "注册后加入社群，联系客服领取 $5 新人额度",
+          "step1Title": "注册账号",
+          "step1Description": "几秒完成",
+          "step2Title": "复制 API Key",
+          "step2Description": "一键安全复制",
+          "step3Title": "发送首次请求",
+          "step3Description": "获得 200 OK"
+        },
+        "community": {
+          "title": "加入 TokenBox 社群",
+          "description": "与 TokenBox 家人们一起交流 AI 使用体验，获取最新玩法",
+          "feedbackTitle": "社区反馈",
+          "feedback1": "接入 API 很方便，之前的代码稍微修改就能跑起来。",
+          "feedback2": "模型选择比较丰富，适合日常开发使用。",
+          "feedback3": "图片生成接口接入后，工作流方便了不少。",
+          "feedback1Author": "开发者",
+          "feedback2Author": "产品经理",
+          "feedback3Author": "设计师",
+          "qrCallout": "快进群领取新人福利啦！",
+          "qrLabel": "打开 TokenBox 社群页面",
+          "join": "加入社群"
+        },
+        "final": {
+          "title": "现在，把第一个模型装进 Box。",
+          "description": "透明定价 · 统一接口 · 全天候稳定服务",
+          "pricing": "查看全部模型价格"
+        }
+      }
+    }
   }
 }

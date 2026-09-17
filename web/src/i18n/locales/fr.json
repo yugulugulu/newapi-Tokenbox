@@ -5387,6 +5387,58 @@
     "Zero retention": "Aucune rétention",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "home": {
+      "tokenbox": {
+        "hero": {
+          "badge": "Plusieurs modèles · Faible latence · Routage fiable",
+          "titleLine1": "Mettez chaque Token",
+          "titleLine2": "dans une seule Box.",
+          "description": "Connectez les principaux modèles via une API avec une tarification transparente et un routage fiable.",
+          "newcomer": "Obtenir le crédit de bienvenue",
+          "pricing": "Voir les tarifs des modèles",
+          "docs": "Documentation de configuration",
+          "models": "Modèles pris en charge"
+        },
+        "status": {
+          "title": "État de l’API",
+          "operational": "Opérationnelle",
+          "gateway": "Passerelle unifiée",
+          "models": "Fournisseurs de modèles"
+        },
+        "onboarding": {
+          "title": "Parcours de démarrage",
+          "description": "Aucune configuration complexe. Lancez votre première requête en trois étapes.",
+          "createKey": "Créer une clé API",
+          "benefit": "Crédit nouvel utilisateur",
+          "benefitDescription": "Après l’inscription, rejoignez la communauté et contactez le support pour recevoir 5 $ de crédit.",
+          "step1Title": "Créer un compte",
+          "step1Description": "Prêt en quelques secondes",
+          "step2Title": "Copier la clé API",
+          "step2Description": "Copie sécurisée en un clic",
+          "step3Title": "Envoyer la première requête",
+          "step3Description": "Recevoir 200 OK"
+        },
+        "community": {
+          "title": "Rejoignez la communauté TokenBox",
+          "description": "Partagez vos expériences IA avec la famille TokenBox et découvrez les dernières façons de l'utiliser.",
+          "feedbackTitle": "Retours de la communauté",
+          "feedback1": "L'intégration de l'API est très pratique. J'ai juste modifié légèrement mon code existant et ça a fonctionné.",
+          "feedback2": "Bonne variété de modèles à choisir, adaptés au développement quotidien.",
+          "feedback3": "L'API de génération d'images a grandement facilité mon flux de travail.",
+          "feedback1Author": "Développeur",
+          "feedback2Author": "Chef de produit",
+          "feedback3Author": "Designer",
+          "qrCallout": "Rejoignez-nous et réclamez vos avantages de nouveaux arrivants !",
+          "qrLabel": "Ouvrir la page de la communauté TokenBox",
+          "join": "Rejoindre la communauté"
+        },
+        "final": {
+          "title": "Placez maintenant votre premier modèle dans la Box.",
+          "description": "Tarification transparente · API unifiée · Service fiable en continu",
+          "pricing": "Voir tous les tarifs"
+        }
+      }
+    }
   }
 }

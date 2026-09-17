@@ -1,0 +1,241 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3040" height="2040" viewBox="0 0 3040 2040">
+  <defs>
+    <linearGradient id="lightBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F8FBFF"/>
+      <stop offset="0.55" stop-color="#EEF7FF"/>
+      <stop offset="1" stop-color="#FFF7EA"/>
+    </linearGradient>
+    <linearGradient id="darkBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#18191B"/>
+      <stop offset="0.55" stop-color="#242527"/>
+      <stop offset="1" stop-color="#1B1C1E"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#35A7FF"/>
+      <stop offset="0.45" stop-color="#087BFF"/>
+      <stop offset="1" stop-color="#0056D8"/>
+    </linearGradient>
+    <linearGradient id="blueSide" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0769E8"/>
+      <stop offset="1" stop-color="#003CA5"/>
+    </linearGradient>
+    <linearGradient id="mint" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#59F1C3"/>
+      <stop offset="1" stop-color="#10B981"/>
+    </linearGradient>
+    <linearGradient id="coral" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF8A88"/>
+      <stop offset="1" stop-color="#FF4D68"/>
+    </linearGradient>
+    <linearGradient id="yellow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFE16A"/>
+      <stop offset="1" stop-color="#FFB52B"/>
+    </linearGradient>
+    <linearGradient id="purple" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#B897FF"/>
+      <stop offset="1" stop-color="#7047EB"/>
+    </linearGradient>
+    <linearGradient id="glassLight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.68"/>
+    </linearGradient>
+    <linearGradient id="glassDark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#353638" stop-opacity="0.94"/>
+      <stop offset="1" stop-color="#292A2C" stop-opacity="0.82"/>
+    </linearGradient>
+    <radialGradient id="heroLightGlow" cx="50%" cy="45%" r="60%">
+      <stop offset="0" stop-color="#BDE8FF" stop-opacity="0.95"/>
+      <stop offset="0.55" stop-color="#DBF1FF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#F7FBFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="heroDarkGlow" cx="50%" cy="45%" r="60%">
+      <stop offset="0" stop-color="#4C5055" stop-opacity="0.78"/>
+      <stop offset="0.58" stop-color="#2E3033" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#1D1E20" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadowSm" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#153D71" flood-opacity="0.12"/>
+    </filter>
+    <filter id="shadowLg" x="-40%" y="-40%" width="180%" height="200%">
+      <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#001D4D" flood-opacity="0.24"/>
+    </filter>
+    <filter id="darkShadow" x="-40%" y="-40%" width="180%" height="200%">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000000" flood-opacity="0.42"/>
+    </filter>
+    <filter id="softBlur" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="28"/>
+    </filter>
+    <symbol id="logoCube" viewBox="0 0 40 40">
+      <path d="M20 2 36 11 20 20 4 11Z" fill="#8D72FF"/>
+      <path d="M4 11 20 20 20 38 4 29Z" fill="#4B73F1"/>
+      <path d="M36 11 20 20 20 38 36 29Z" fill="#00A1FF"/>
+    </symbol>
+    <symbol id="sparkle" viewBox="0 0 32 32">
+      <path d="M16 1c1.5 8.2 6.8 13.5 15 15-8.2 1.5-13.5 6.8-15 15C14.5 22.8 9.2 17.5 1 16 9.2 14.5 14.5 9.2 16 1Z" fill="currentColor"/>
+    </symbol>
+    <symbol id="arrow" viewBox="0 0 24 24">
+      <path d="M5 12h13M14 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="check" viewBox="0 0 24 24">
+      <path d="m5 12 4 4L19 6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="globe" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M3.5 12h17M12 3c3 3.1 3 14.9 0 18M12 3c-3 3.1-3 14.9 0 18" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+    <symbol id="bell" viewBox="0 0 24 24">
+      <path d="M6 10a6 6 0 0 1 12 0v4l2 3H4l2-3v-4Zm4 10h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="moon" viewBox="0 0 24 24">
+      <path d="M18.5 15.8A8 8 0 0 1 8.2 5.5 8.1 8.1 0 1 0 18.5 15.8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="sun" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+    <style>
+      .sans { font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif; }
+      .nav { font-size: 16px; font-weight: 650; }
+      .eyebrow { font-size: 15px; font-weight: 700; }
+      .heroTitle { font-size: 64px; font-weight: 850; }
+      .heroBody { font-size: 20px; font-weight: 500; }
+      .sectionTitle { font-size: 36px; font-weight: 800; }
+      .sectionBody { font-size: 17px; font-weight: 500; }
+      .button { font-size: 17px; font-weight: 750; }
+      .cardTitle { font-size: 20px; font-weight: 760; }
+      .body { font-size: 15px; font-weight: 500; }
+      .caption { font-size: 13px; font-weight: 560; }
+      .white { fill: #FFFFFF; }
+      .lightText { fill: #0B2557; }
+      .lightMuted { fill: #526581; }
+      .darkText { fill: #F5F5F5; }
+      .darkMuted { fill: #B8B8B8; }
+    </style>
+  </defs>
+
+  <g id="TokenBox Homepage Editable Light">
+    <rect id="Light Artboard" x="20" y="20" width="1440" height="2000" rx="28" fill="url(#lightBg)"/>
+
+    <g id="Light Header">
+      <rect x="20" y="20" width="1440" height="82" rx="28" fill="#FFFFFF" fill-opacity="0.92"/>
+      <rect x="20" y="74" width="1440" height="28" fill="#FFFFFF" fill-opacity="0.92"/>
+      <use href="#logoCube" x="72" y="41" width="38" height="38"/>
+      <text class="sans lightText" x="122" y="67" font-size="20" font-weight="800">TokenBox</text>
+      <g class="sans nav lightText">
+        <text x="548" y="68">首页</text><text x="620" y="68">控制台</text><text x="708" y="68">模型广场</text>
+        <text x="812" y="68">排行榜</text><text x="900" y="68">文档</text><text x="972" y="68">关于</text>
+      </g>
+      <rect x="546" y="86" width="34" height="3" rx="2" fill="#087BFF"/>
+      <g color="#0B2557"><use href="#globe" x="1060" y="48" width="24" height="24"/><use href="#moon" x="1110" y="48" width="24" height="24"/><use href="#bell" x="1160" y="48" width="24" height="24"/></g>
+      <g id="Light Login Button"><rect x="1212" y="38" width="170" height="46" rx="23" fill="url(#blue)"/><text class="sans white button" x="1271" y="67">登录</text></g>
+    </g>
+
+    <g id="Light Hero">
+      <ellipse cx="1080" cy="376" rx="360" ry="310" fill="url(#heroLightGlow)"/>
+      <circle cx="1312" cy="170" r="38" fill="#FFE171" opacity="0.4" filter="url(#softBlur)"/>
+      <circle cx="860" cy="192" r="55" fill="#78D8FF" opacity="0.32" filter="url(#softBlur)"/>
+      <g id="Light Hero Copy">
+        <g id="Light Trust Badge"><rect x="72" y="158" width="252" height="42" rx="21" fill="#FFFFFF" stroke="#087BFF" stroke-width="1.5"/><use href="#sparkle" x="89" y="171" width="16" height="16" style="color:#087BFF"/><text class="sans eyebrow" x="114" y="184" fill="#087BFF">多模型 · 低延迟 · 稳定可靠</text></g>
+        <text class="sans heroTitle lightText" x="72" y="290">把所有 AI，</text>
+        <text class="sans heroTitle lightText" x="72" y="363">装进一个 Box.</text>
+        <text class="sans heroBody lightMuted" x="74" y="414">一个接口连接主流模型，透明计费，稳定转发。</text>
+        <g id="Light Primary CTA" filter="url(#shadowSm)"><rect x="72" y="460" width="222" height="60" rx="22" fill="url(#blue)"/><circle cx="104" cy="490" r="15" fill="#FFCA3A"/><path d="M104 473v34M92 482h24" stroke="#D89400" stroke-width="4" stroke-linecap="round"/><text class="sans white button" x="128" y="497">领取新人额度</text><use href="#arrow" x="255" y="478" width="24" height="24" style="color:#fff"/></g>
+        <g id="Light Pricing CTA"><rect x="308" y="460" width="176" height="60" rx="22" fill="#FFFFFF" stroke="#D9E8FA"/><text class="sans button lightText" x="334" y="497">查看模型价格</text></g>
+        <g id="Light Docs CTA"><rect x="498" y="460" width="162" height="60" rx="22" fill="#FFFFFF" stroke="#D9E8FA"/><text class="sans button lightText" x="530" y="497">配置文档</text><use href="#arrow" x="620" y="478" width="24" height="24" style="color:#0B2557"/></g>
+        <text class="sans body lightMuted" x="74" y="574">支持的主流模型</text>
+        <g id="Light Model Chips" class="sans body lightText">
+          <g><rect x="72" y="594" width="118" height="48" rx="20" fill="#FFFFFF"/><circle cx="95" cy="618" r="11" fill="#10B981"/><text x="114" y="624">OpenAI</text></g>
+          <g><rect x="198" y="594" width="116" height="48" rx="20" fill="#FFFFFF"/><circle cx="221" cy="618" r="11" fill="#FF6F45"/><text x="240" y="624">Claude</text></g>
+          <g><rect x="322" y="594" width="116" height="48" rx="20" fill="#FFFFFF"/><circle cx="345" cy="618" r="11" fill="#4285F4"/><text x="364" y="624">Gemini</text></g>
+          <g><rect x="446" y="594" width="132" height="48" rx="20" fill="#FFFFFF"/><circle cx="469" cy="618" r="11" fill="#087BFF"/><text x="488" y="624">DeepSeek</text></g>
+          <g><rect x="586" y="594" width="106" height="48" rx="20" fill="#FFFFFF"/><circle cx="609" cy="618" r="11" fill="#7047EB"/><text x="628" y="624">Qwen</text></g>
+        </g>
+      </g>
+
+      <g id="Light Box Mascot" transform="translate(814 126)" filter="url(#shadowLg)">
+        <ellipse cx="270" cy="526" rx="216" ry="34" fill="#3C79D8" opacity="0.18"/>
+        <g id="Light Antenna"><path d="M270 102V56" stroke="#0066DB" stroke-width="18" stroke-linecap="round"/><circle cx="270" cy="44" r="25" fill="url(#yellow)"/><circle cx="262" cy="35" r="7" fill="#FFF8C8"/></g>
+        <g id="Light Left Arm"><path d="M66 260C8 262-6 214 25 179" fill="none" stroke="#B9C7D8" stroke-width="30" stroke-linecap="round"/><path d="M24 181c-20-20-17-48 8-55 17-5 30 6 35 23 10-17 28-21 40-8 13 14 5 37-12 48" fill="#FFFFFF" stroke="#CBD9E8" stroke-width="5"/></g>
+        <g id="Light Right Arm"><path d="M475 262c72 12 96-32 86-75" fill="none" stroke="#B9C7D8" stroke-width="30" stroke-linecap="round"/><path d="M557 185c-4-28 12-50 37-47 18 2 27 17 24 34 15-11 33-5 39 11 7 18-9 36-29 41" fill="#FFFFFF" stroke="#CBD9E8" stroke-width="5"/></g>
+        <path d="M113 132 159 101H415L449 137 423 166H142Z" fill="#2599FF"/>
+        <path d="M142 149 423 149 463 203 438 409 392 456H145L94 408 70 207Z" fill="url(#blue)"/>
+        <path d="M70 207 142 149 141 420 94 408Z" fill="url(#blueSide)"/>
+        <path d="M423 149 463 203 438 409 393 444 395 189Z" fill="#0060D5"/>
+        <rect x="156" y="194" width="240" height="138" rx="45" fill="#062A64" stroke="#79C9FF" stroke-width="8"/>
+        <path d="m215 252 30-20M215 252l30 20M337 232l30 20M337 272l30-20" stroke="#66E9FF" stroke-width="13" stroke-linecap="round"/>
+        <circle cx="286" cy="259" r="7" fill="#FFF"/>
+        <text class="sans white" x="187" y="388" font-size="42" font-weight="900">TOKEN BOX</text>
+        <g id="Light Stickers"><use href="#sparkle" x="110" y="230" width="30" height="30" style="color:#FFE14D"/><circle cx="414" cy="354" r="22" fill="#FFCB3C"/><path d="M405 351c4 7 14 7 18 0" fill="none" stroke="#4B3B00" stroke-width="4" stroke-linecap="round"/></g>
+        <g id="Light Feet"><path d="M158 438v61" stroke="#B7C9DC" stroke-width="28" stroke-linecap="round"/><path d="M360 438v61" stroke="#B7C9DC" stroke-width="28" stroke-linecap="round"/><path d="M109 492c42-27 87-14 98 33l-9 21H98c-20-9-14-40 11-54Z" fill="#FFFFFF" stroke="#D4E1ED" stroke-width="5"/><path d="M315 513c17-40 63-48 101-19 21 16 23 42 0 52H319Z" fill="#FFFFFF" stroke="#D4E1ED" stroke-width="5"/><path d="M113 512h89M322 522h93" stroke="#FFCC36" stroke-width="8"/></g>
+      </g>
+
+      <g id="Light API Status" filter="url(#shadowSm)"><rect x="1122" y="536" width="270" height="132" rx="26" fill="url(#glassLight)" stroke="#FFFFFF"/><circle cx="1152" cy="568" r="7" fill="#10D79B"/><text class="sans lightText" x="1170" y="574" font-size="16" font-weight="760">API 状态</text><rect x="1280" y="550" width="88" height="34" rx="17" fill="#D8FBEF"/><text class="sans" x="1296" y="572" font-size="13" font-weight="700" fill="#09946E">稳定运行</text><path d="M1146 596h220" stroke="#D9E8FA"/><text class="sans lightText" x="1146" y="630" font-size="24" font-weight="800">99.99%</text><text class="sans lightText" x="1266" y="630" font-size="24" font-weight="800">12ms</text><text class="sans caption lightMuted" x="1146" y="652">可用性</text><text class="sans caption lightMuted" x="1266" y="652">平均延迟</text></g>
+    </g>
+
+    <g id="Light Onboarding Section">
+      <text class="sans sectionTitle lightText" x="72" y="760">新手开箱路线</text>
+      <text class="sans sectionBody lightMuted" x="72" y="794">不用研究复杂配置，三步完成第一次调用。</text>
+      <g id="Light Docs Shortcut" filter="url(#shadowSm)"><rect x="1192" y="734" width="200" height="52" rx="20" fill="url(#blue)"/><text class="sans white button" x="1232" y="767">打开配置文档</text><use href="#arrow" x="1354" y="748" width="24" height="24" style="color:#fff"/></g>
+      <g id="Light Benefit Card" filter="url(#shadowSm)">
+        <rect x="72" y="828" width="1320" height="364" rx="34" fill="url(#glassLight)" stroke="#DCEBFA"/>
+        <g id="Light Coupon"><path d="M116 918c0-24 18-42 42-42h200c24 0 42 18 42 42v150c0 24-18 42-42 42H158c-24 0-42-18-42-42 22-13 22-34 0-47v-56c22-13 22-34 0-47Z" fill="url(#blue)"/><circle cx="346" cy="910" r="10" fill="#FFE14D"/><text class="sans white" x="160" y="974" font-size="58" font-weight="900">¥5</text><text class="sans white" x="160" y="1020" font-size="21" font-weight="750">新人体验额度</text><path d="M150 1052h218" stroke="#67BFFF" stroke-width="2" stroke-dasharray="8 8"/><text class="sans white" x="160" y="1082" font-size="14">注册即到账 · 不限模型</text></g>
+        <path d="M440 994C510 934 550 1050 620 990S746 944 810 993 927 1040 995 988 1100 944 1160 993" fill="none" stroke="#5EB0FF" stroke-width="3" stroke-dasharray="8 9"/>
+        <g id="Light Step 1"><circle cx="550" cy="885" r="25" fill="#27CDE0"/><text class="sans white" x="536" y="893" font-size="16" font-weight="800">01</text><circle cx="550" cy="984" r="54" fill="#E9F6FF"/><circle cx="550" cy="967" r="18" fill="#2478ED"/><path d="M517 1023c3-31 63-31 66 0" fill="#2478ED"/><circle cx="583" cy="1014" r="19" fill="#087BFF"/><path d="M583 1005v18M574 1014h18" stroke="#FFF" stroke-width="3" stroke-linecap="round"/><text class="sans cardTitle lightText" x="500" y="1088">注册账号</text><text class="sans body lightMuted" x="510" y="1118">10 秒完成</text></g>
+        <g id="Light Step 2"><circle cx="836" cy="885" r="25" fill="url(#coral)"/><text class="sans white" x="822" y="893" font-size="16" font-weight="800">02</text><rect x="770" y="940" width="132" height="76" rx="24" fill="#EDF6FF" stroke="#CEE6FA"/><text class="sans" x="789" y="969" font-size="15" font-weight="800" fill="#087BFF">API Key</text><circle cx="814" cy="991" r="11" fill="#087BFF"/><circle cx="853" cy="991" r="11" fill="#087BFF"/><path d="M825 991h17M864 991h18" stroke="#087BFF" stroke-width="7" stroke-linecap="round"/><circle cx="900" cy="1014" r="19" fill="#087BFF"/><use href="#check" x="888" y="1002" width="24" height="24" style="color:#fff"/><text class="sans cardTitle lightText" x="784" y="1088">复制 API Key</text><text class="sans body lightMuted" x="791" y="1118">一键安全复制</text></g>
+        <g id="Light Step 3"><circle cx="1120" cy="885" r="25" fill="url(#yellow)"/><text class="sans white" x="1106" y="893" font-size="16" font-weight="800">03</text><rect x="1053" y="940" width="132" height="76" rx="20" fill="#E7F3FF" stroke="#CBE3FA"/><path d="m1098 970-18 9 18 9M1140 970l18 9-18 9M1127 960l-15 39" fill="none" stroke="#087BFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="1181" cy="1014" r="20" fill="#10B981"/><use href="#check" x="1169" y="1002" width="24" height="24" style="color:#fff"/><text class="sans cardTitle lightText" x="1065" y="1088">发送首次请求</text><text class="sans body lightMuted" x="1084" y="1118">获得 200 OK</text></g>
+      </g>
+    </g>
+
+    <g id="Light Community Section">
+      <rect x="72" y="1240" width="1320" height="582" rx="38" fill="#EAF5FF"/>
+      <circle cx="1040" cy="1520" r="250" fill="#D5ECFF"/>
+      <text class="sans sectionTitle lightText" x="112" y="1322">加入 TokenBox 社群</text>
+      <text class="sans sectionBody lightMuted" x="112" y="1360">和开发者一起交流经验，第一时间获取模型动态。</text>
+      <g id="Light Community Chat" filter="url(#shadowSm)"><rect x="112" y="1410" width="440" height="282" rx="28" fill="#FFFFFF"/><circle cx="144" cy="1448" r="8" fill="#087BFF"/><text class="sans lightText" x="162" y="1454" font-size="17" font-weight="760">社区热聊 · 12k 人在线</text><circle cx="374" cy="1448" r="5" fill="#10B981"/>
+        <g class="sans body"><circle cx="148" cy="1500" r="17" fill="#BEE3FF"/><text x="180" y="1506" fill="#526581">小张：新端的 Qwen 效果真不错！</text><circle cx="148" cy="1554" r="17" fill="#FFD9C7"/><text x="180" y="1560" fill="#526581">开发者 Leo：这波延迟下降明显。</text><circle cx="148" cy="1608" r="17" fill="#D8F6E9"/><text x="180" y="1614" fill="#526581">AI 爱好者：文档示例非常直观。</text><rect x="144" y="1652" width="348" height="1" fill="#E7EEF7"/></g></g>
+      <g id="Light Community People">
+        <g transform="translate(650 1430)"><circle cx="110" cy="80" r="64" fill="#FFD1B7"/><path d="M48 78c3-75 129-91 132 4-25-9-38-34-50-54-22 31-50 45-82 50Z" fill="#192C4A"/><circle cx="88" cy="86" r="5" fill="#142038"/><circle cx="132" cy="86" r="5" fill="#142038"/><path d="M95 108c10 9 22 9 32 0" fill="none" stroke="#B84B46" stroke-width="4" stroke-linecap="round"/><path d="M32 250c5-91 151-91 157 0Z" fill="url(#blue)"/><rect x="60" y="212" width="112" height="72" rx="12" fill="#C7D7E7"/><use href="#logoCube" x="103" y="230" width="28" height="28"/></g>
+        <g transform="translate(830 1338)"><circle cx="110" cy="80" r="64" fill="#FFD1B7"/><path d="M50 81c-6-81 117-111 134-25 10 50-20 65-20 65l-14-72c-26 25-57 32-100 32Z" fill="#3A2533"/><circle cx="88" cy="88" r="5" fill="#142038"/><circle cx="132" cy="88" r="5" fill="#142038"/><path d="M96 110c9 8 21 8 30 0" fill="none" stroke="#B84B46" stroke-width="4" stroke-linecap="round"/><path d="M36 250c5-92 144-92 150 0Z" fill="#FFC638"/><rect x="86" y="164" width="50" height="86" rx="12" fill="#252B38"/></g>
+        <g transform="translate(1014 1438)"><circle cx="110" cy="80" r="64" fill="#FFD1B7"/><path d="M48 76c12-78 143-74 142 17-25-18-48-35-82-37-23 12-38 18-60 20Z" fill="#16284A"/><path d="M47 60c24-43 103-61 144-13l-12 29c-38-26-87-26-132-16Z" fill="#087BFF"/><circle cx="88" cy="88" r="5" fill="#142038"/><circle cx="132" cy="88" r="5" fill="#142038"/><path d="M95 110c10 9 22 9 32 0" fill="none" stroke="#B84B46" stroke-width="4" stroke-linecap="round"/><path d="M34 250c5-92 147-92 153 0Z" fill="#F7FAFF" stroke="#D8E6F4" stroke-width="3"/></g>
+        <g id="Light Speech Bubbles"><rect x="760" y="1388" width="82" height="52" rx="18" fill="#49A9FF"/><circle cx="785" cy="1414" r="5" fill="#FFF"/><circle cx="802" cy="1414" r="5" fill="#FFF"/><circle cx="819" cy="1414" r="5" fill="#FFF"/><path d="M810 1438l12 20 3-24" fill="#49A9FF"/><rect x="1112" y="1388" width="82" height="52" rx="18" fill="#21D3A0"/><circle cx="1137" cy="1414" r="5" fill="#FFF"/><circle cx="1154" cy="1414" r="5" fill="#FFF"/><circle cx="1171" cy="1414" r="5" fill="#FFF"/></g>
+      </g>
+      <g id="Light QR"><rect x="1220" y="1408" width="128" height="128" rx="24" fill="#FFFFFF"/><path d="M1244 1432h34v8h-26v26h-8Zm80 0v34h-8v-26h-26v-8Zm0 80h-34v-8h26v-26h8Zm-80 0v-34h8v26h26v8Z" fill="#087BFF"/><rect x="1268" y="1456" width="56" height="56" fill="#121212"/><path d="M1276 1464h16v16h-16Zm24 0h16v8h-16Zm-24 24h8v16h-8Zm16-8h24v24h-8v-8h-16Z" fill="#FFF"/></g>
+      <g id="Light Join Button" filter="url(#shadowSm)"><rect x="1194" y="1562" width="180" height="56" rx="22" fill="url(#blue)"/><text class="sans white button" x="1231" y="1597">扫码加入社群</text></g>
+    </g>
+
+    <g id="Light Footer CTA"><text class="sans lightText" x="72" y="1898" font-size="24" font-weight="800">现在，把第一个模型装进 Box。</text><text class="sans body lightMuted" x="72" y="1932">透明定价 · 统一接口 · 7×24 小时稳定服务</text><g><rect x="1138" y="1870" width="254" height="64" rx="24" fill="#0B2557"/><text class="sans white button" x="1185" y="1910">查看全部模型价格</text><use href="#arrow" x="1350" y="1890" width="24" height="24" style="color:#fff"/></g></g>
+  </g>
+
+  <g id="TokenBox Homepage Editable Dark" transform="translate(1560 0)">
+    <rect id="Dark Artboard" x="20" y="20" width="1440" height="2000" rx="28" fill="url(#darkBg)"/>
+    <g id="Dark Header">
+      <rect x="20" y="20" width="1440" height="82" rx="28" fill="#202123"/>
+      <rect x="20" y="74" width="1440" height="28" fill="#202123"/>
+      <use href="#logoCube" x="72" y="41" width="38" height="38"/><text class="sans darkText" x="122" y="67" font-size="20" font-weight="800">TokenBox</text>
+      <g class="sans nav darkText"><text x="548" y="68">首页</text><text x="620" y="68">控制台</text><text x="708" y="68">模型广场</text><text x="812" y="68">排行榜</text><text x="900" y="68">文档</text><text x="972" y="68">关于</text></g>
+      <rect x="546" y="86" width="34" height="3" rx="2" fill="#087BFF"/>
+      <g color="#F5F5F5"><use href="#globe" x="1060" y="48" width="24" height="24"/><use href="#sun" x="1110" y="48" width="24" height="24"/><use href="#bell" x="1160" y="48" width="24" height="24"/></g>
+      <g id="Dark Login Button"><rect x="1212" y="38" width="170" height="46" rx="23" fill="url(#blue)"/><text class="sans white button" x="1271" y="67">登录</text></g>
+    </g>
+    <g id="Dark Hero">
+      <ellipse cx="1080" cy="376" rx="360" ry="310" fill="url(#heroDarkGlow)"/>
+      <g id="Dark Hero Copy"><g id="Dark Trust Badge"><rect x="72" y="158" width="252" height="42" rx="21" fill="#2D2E30" stroke="#087BFF" stroke-width="1.5"/><use href="#sparkle" x="89" y="171" width="16" height="16" style="color:#31A6FF"/><text class="sans eyebrow darkText" x="114" y="184">多模型 · 低延迟 · 稳定可靠</text></g><text class="sans heroTitle darkText" x="72" y="290">把所有 AI，</text><text class="sans heroTitle darkText" x="72" y="363">装进一个 Box.</text><text class="sans heroBody darkMuted" x="74" y="414">一个接口连接主流模型，透明计费，稳定转发。</text>
+        <g id="Dark Primary CTA" filter="url(#darkShadow)"><rect x="72" y="460" width="222" height="60" rx="22" fill="url(#blue)"/><circle cx="104" cy="490" r="15" fill="#FFCA3A"/><path d="M104 473v34M92 482h24" stroke="#D89400" stroke-width="4" stroke-linecap="round"/><text class="sans white button" x="128" y="497">领取新人额度</text><use href="#arrow" x="255" y="478" width="24" height="24" style="color:#fff"/></g>
+        <g id="Dark Pricing CTA"><rect x="308" y="460" width="176" height="60" rx="22" fill="#303133" stroke="#FFFFFF" stroke-opacity="0.1"/><text class="sans button darkText" x="334" y="497">查看模型价格</text></g><g id="Dark Docs CTA"><rect x="498" y="460" width="162" height="60" rx="22" fill="#303133" stroke="#FFFFFF" stroke-opacity="0.1"/><text class="sans button darkText" x="530" y="497">配置文档</text><use href="#arrow" x="620" y="478" width="24" height="24" style="color:#F5F5F5"/></g>
+        <text class="sans body darkMuted" x="74" y="574">支持的主流模型</text><g id="Dark Model Chips" class="sans body darkText"><g><rect x="72" y="594" width="118" height="48" rx="20" fill="#303133"/><circle cx="95" cy="618" r="11" fill="#10B981"/><text x="114" y="624">OpenAI</text></g><g><rect x="198" y="594" width="116" height="48" rx="20" fill="#303133"/><circle cx="221" cy="618" r="11" fill="#FF6F45"/><text x="240" y="624">Claude</text></g><g><rect x="322" y="594" width="116" height="48" rx="20" fill="#303133"/><circle cx="345" cy="618" r="11" fill="#4285F4"/><text x="364" y="624">Gemini</text></g><g><rect x="446" y="594" width="132" height="48" rx="20" fill="#303133"/><circle cx="469" cy="618" r="11" fill="#087BFF"/><text x="488" y="624">DeepSeek</text></g><g><rect x="586" y="594" width="106" height="48" rx="20" fill="#303133"/><circle cx="609" cy="618" r="11" fill="#7047EB"/><text x="628" y="624">Qwen</text></g></g>
+      </g>
+      <g id="Dark Box Mascot" transform="translate(814 126)" filter="url(#darkShadow)"><ellipse cx="270" cy="526" rx="216" ry="34" fill="#000" opacity="0.45"/><g><path d="M270 102V56" stroke="#0066DB" stroke-width="18" stroke-linecap="round"/><circle cx="270" cy="44" r="25" fill="url(#yellow)"/><circle cx="262" cy="35" r="7" fill="#FFF8C8"/></g><path d="M66 260C8 262-6 214 25 179" fill="none" stroke="#8F969F" stroke-width="30" stroke-linecap="round"/><path d="M24 181c-20-20-17-48 8-55 17-5 30 6 35 23 10-17 28-21 40-8 13 14 5 37-12 48" fill="#E7E7E7" stroke="#6E737A" stroke-width="5"/><path d="M475 262c72 12 96-32 86-75" fill="none" stroke="#8F969F" stroke-width="30" stroke-linecap="round"/><path d="M557 185c-4-28 12-50 37-47 18 2 27 17 24 34 15-11 33-5 39 11 7 18-9 36-29 41" fill="#E7E7E7" stroke="#6E737A" stroke-width="5"/><path d="M113 132 159 101H415L449 137 423 166H142Z" fill="#2599FF"/><path d="M142 149 423 149 463 203 438 409 392 456H145L94 408 70 207Z" fill="url(#blue)"/><path d="M70 207 142 149 141 420 94 408Z" fill="url(#blueSide)"/><path d="M423 149 463 203 438 409 393 444 395 189Z" fill="#0060D5"/><rect x="156" y="194" width="240" height="138" rx="45" fill="#071E3E" stroke="#79C9FF" stroke-width="8"/><path d="m215 252 30-20M215 252l30 20M337 232l30 20M337 272l30-20" stroke="#66E9FF" stroke-width="13" stroke-linecap="round"/><circle cx="286" cy="259" r="7" fill="#FFF"/><text class="sans white" x="187" y="388" font-size="42" font-weight="900">TOKEN BOX</text><use href="#sparkle" x="110" y="230" width="30" height="30" style="color:#FFE14D"/><circle cx="414" cy="354" r="22" fill="#FFCB3C"/><path d="M405 351c4 7 14 7 18 0" fill="none" stroke="#4B3B00" stroke-width="4" stroke-linecap="round"/><path d="M158 438v61M360 438v61" stroke="#888F98" stroke-width="28" stroke-linecap="round"/><path d="M109 492c42-27 87-14 98 33l-9 21H98c-20-9-14-40 11-54Z" fill="#F1F1F1" stroke="#666B72" stroke-width="5"/><path d="M315 513c17-40 63-48 101-19 21 16 23 42 0 52H319Z" fill="#F1F1F1" stroke="#666B72" stroke-width="5"/><path d="M113 512h89M322 522h93" stroke="#FFCC36" stroke-width="8"/></g>
+      <g id="Dark API Status" filter="url(#darkShadow)"><rect x="1122" y="536" width="270" height="132" rx="26" fill="url(#glassDark)" stroke="#FFFFFF" stroke-opacity="0.08"/><circle cx="1152" cy="568" r="7" fill="#10D79B"/><text class="sans darkText" x="1170" y="574" font-size="16" font-weight="760">API 状态</text><rect x="1280" y="550" width="88" height="34" rx="17" fill="#174E3F"/><text class="sans" x="1296" y="572" font-size="13" font-weight="700" fill="#54E3B7">稳定运行</text><path d="M1146 596h220" stroke="#FFFFFF" stroke-opacity="0.1"/><text class="sans darkText" x="1146" y="630" font-size="24" font-weight="800">99.99%</text><text class="sans darkText" x="1266" y="630" font-size="24" font-weight="800">12ms</text><text class="sans caption darkMuted" x="1146" y="652">可用性</text><text class="sans caption darkMuted" x="1266" y="652">平均延迟</text></g>
+    </g>
+    <g id="Dark Onboarding Section"><text class="sans sectionTitle darkText" x="72" y="760">新手开箱路线</text><text class="sans sectionBody darkMuted" x="72" y="794">不用研究复杂配置，三步完成第一次调用。</text><g filter="url(#darkShadow)"><rect x="1192" y="734" width="200" height="52" rx="20" fill="url(#blue)"/><text class="sans white button" x="1232" y="767">打开配置文档</text><use href="#arrow" x="1354" y="748" width="24" height="24" style="color:#fff"/></g><g id="Dark Benefit Card" filter="url(#darkShadow)"><rect x="72" y="828" width="1320" height="364" rx="34" fill="#2C2D2F" stroke="#FFFFFF" stroke-opacity="0.08"/><g><path d="M116 918c0-24 18-42 42-42h200c24 0 42 18 42 42v150c0 24-18 42-42 42H158c-24 0-42-18-42-42 22-13 22-34 0-47v-56c22-13 22-34 0-47Z" fill="url(#blue)"/><circle cx="346" cy="910" r="10" fill="#FFE14D"/><text class="sans white" x="160" y="974" font-size="58" font-weight="900">¥5</text><text class="sans white" x="160" y="1020" font-size="21" font-weight="750">新人体验额度</text><path d="M150 1052h218" stroke="#67BFFF" stroke-width="2" stroke-dasharray="8 8"/><text class="sans white" x="160" y="1082" font-size="14">注册即到账 · 不限模型</text></g><path d="M440 994C510 934 550 1050 620 990S746 944 810 993 927 1040 995 988 1100 944 1160 993" fill="none" stroke="#087BFF" stroke-width="3" stroke-dasharray="8 9"/>
+        <g><circle cx="550" cy="885" r="25" fill="#27CDE0"/><text class="sans white" x="536" y="893" font-size="16" font-weight="800">01</text><circle cx="550" cy="984" r="54" fill="#3A3B3D"/><circle cx="550" cy="967" r="18" fill="#2478ED"/><path d="M517 1023c3-31 63-31 66 0" fill="#2478ED"/><circle cx="583" cy="1014" r="19" fill="#087BFF"/><path d="M583 1005v18M574 1014h18" stroke="#FFF" stroke-width="3" stroke-linecap="round"/><text class="sans cardTitle darkText" x="500" y="1088">注册账号</text><text class="sans body darkMuted" x="510" y="1118">10 秒完成</text></g>
+        <g><circle cx="836" cy="885" r="25" fill="url(#coral)"/><text class="sans white" x="822" y="893" font-size="16" font-weight="800">02</text><rect x="770" y="940" width="132" height="76" rx="24" fill="#3A3B3D" stroke="#FFFFFF" stroke-opacity="0.1"/><text class="sans" x="789" y="969" font-size="15" font-weight="800" fill="#4DADFF">API Key</text><circle cx="814" cy="991" r="11" fill="#087BFF"/><circle cx="853" cy="991" r="11" fill="#087BFF"/><path d="M825 991h17M864 991h18" stroke="#087BFF" stroke-width="7" stroke-linecap="round"/><circle cx="900" cy="1014" r="19" fill="#087BFF"/><use href="#check" x="888" y="1002" width="24" height="24" style="color:#fff"/><text class="sans cardTitle darkText" x="784" y="1088">复制 API Key</text><text class="sans body darkMuted" x="791" y="1118">一键安全复制</text></g>
+        <g><circle cx="1120" cy="885" r="25" fill="url(#yellow)"/><text class="sans white" x="1106" y="893" font-size="16" font-weight="800">03</text><rect x="1053" y="940" width="132" height="76" rx="20" fill="#3A3B3D" stroke="#FFFFFF" stroke-opacity="0.1"/><path d="m1098 970-18 9 18 9M1140 970l18 9-18 9M1127 960l-15 39" fill="none" stroke="#3EA7FF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="1181" cy="1014" r="20" fill="#10B981"/><use href="#check" x="1169" y="1002" width="24" height="24" style="color:#fff"/><text class="sans cardTitle darkText" x="1065" y="1088">发送首次请求</text><text class="sans body darkMuted" x="1084" y="1118">获得 200 OK</text></g></g>
+    </g>
+    <g id="Dark Community Section"><rect x="72" y="1240" width="1320" height="582" rx="38" fill="#2B2C2E" stroke="#FFFFFF" stroke-opacity="0.06"/><circle cx="1040" cy="1520" r="250" fill="#333537"/><text class="sans sectionTitle darkText" x="112" y="1322">加入 TokenBox 社群</text><text class="sans sectionBody darkMuted" x="112" y="1360">和开发者一起交流经验，第一时间获取模型动态。</text><g id="Dark Community Chat" filter="url(#darkShadow)"><rect x="112" y="1410" width="440" height="282" rx="28" fill="#353638"/><circle cx="144" cy="1448" r="8" fill="#087BFF"/><text class="sans darkText" x="162" y="1454" font-size="17" font-weight="760">社区热聊 · 12k 人在线</text><circle cx="374" cy="1448" r="5" fill="#10B981"/><g class="sans body"><circle cx="148" cy="1500" r="17" fill="#405A70"/><text x="180" y="1506" fill="#B8B8B8">小张：新端的 Qwen 效果真不错！</text><circle cx="148" cy="1554" r="17" fill="#654A43"/><text x="180" y="1560" fill="#B8B8B8">开发者 Leo：这波延迟下降明显。</text><circle cx="148" cy="1608" r="17" fill="#34584A"/><text x="180" y="1614" fill="#B8B8B8">AI 爱好者：文档示例非常直观。</text><rect x="144" y="1652" width="348" height="1" fill="#FFFFFF" opacity="0.08"/></g></g>
+      <g id="Dark Community People"><g transform="translate(650 1430)"><circle cx="110" cy="80" r="64" fill="#FFD1B7"/><path d="M48 78c3-75 129-91 132 4-25-9-38-34-50-54-22 31-50 45-82 50Z" fill="#192C4A"/><circle cx="88" cy="86" r="5" fill="#142038"/><circle cx="132" cy="86" r="5" fill="#142038"/><path d="M95 108c10 9 22 9 32 0" fill="none" stroke="#B84B46" stroke-width="4" stroke-linecap="round"/><path d="M32 250c5-91 151-91 157 0Z" fill="url(#blue)"/><rect x="60" y="212" width="112" height="72" rx="12" fill="#7E8790"/><use href="#logoCube" x="103" y="230" width="28" height="28"/></g><g transform="translate(830 1338)"><circle cx="110" cy="80" r="64" fill="#FFD1B7"/><path d="M50 81c-6-81 117-111 134-25 10 50-20 65-20 65l-14-72c-26 25-57 32-100 32Z" fill="#3A2533"/><circle cx="88" cy="88" r="5" fill="#142038"/><circle cx="132" cy="88" r="5" fill="#142038"/><path d="M96 110c9 8 21 8 30 0" fill="none" stroke="#B84B46" stroke-width="4" stroke-linecap="round"/><path d="M36 250c5-92 144-92 150 0Z" fill="#FFC638"/><rect x="86" y="164" width="50" height="86" rx="12" fill="#252B38"/></g><g transform="translate(1014 1438)"><circle cx="110" cy="80" r="64" fill="#FFD1B7"/><path d="M48 76c12-78 143-74 142 17-25-18-48-35-82-37-23 12-38 18-60 20Z" fill="#16284A"/><path d="M47 60c24-43 103-61 144-13l-12 29c-38-26-87-26-132-16Z" fill="#087BFF"/><circle cx="88" cy="88" r="5" fill="#142038"/><circle cx="132" cy="88" r="5" fill="#142038"/><path d="M95 110c10 9 22 9 32 0" fill="none" stroke="#B84B46" stroke-width="4" stroke-linecap="round"/><path d="M34 250c5-92 147-92 153 0Z" fill="#F3F3F3" stroke="#6D7075" stroke-width="3"/></g><rect x="760" y="1388" width="82" height="52" rx="18" fill="#338AD8"/><circle cx="785" cy="1414" r="5" fill="#FFF"/><circle cx="802" cy="1414" r="5" fill="#FFF"/><circle cx="819" cy="1414" r="5" fill="#FFF"/><rect x="1112" y="1388" width="82" height="52" rx="18" fill="#189B79"/><circle cx="1137" cy="1414" r="5" fill="#FFF"/><circle cx="1154" cy="1414" r="5" fill="#FFF"/><circle cx="1171" cy="1414" r="5" fill="#FFF"/></g>
+      <g id="Dark QR"><rect x="1220" y="1408" width="128" height="128" rx="24" fill="#3A3B3D"/><path d="M1244 1432h34v8h-26v26h-8Zm80 0v34h-8v-26h-26v-8Zm0 80h-34v-8h26v-26h8Zm-80 0v-34h8v26h26v8Z" fill="#168AFF"/><rect x="1268" y="1456" width="56" height="56" fill="#F5F5F5"/><path d="M1276 1464h16v16h-16Zm24 0h16v8h-16Zm-24 24h8v16h-8Zm16-8h24v24h-8v-8h-16Z" fill="#18191B"/></g><g filter="url(#darkShadow)"><rect x="1194" y="1562" width="180" height="56" rx="22" fill="url(#blue)"/><text class="sans white button" x="1231" y="1597">扫码加入社群</text></g>
+    </g>
+    <g id="Dark Footer CTA"><text class="sans darkText" x="72" y="1898" font-size="24" font-weight="800">现在，把第一个模型装进 Box。</text><text class="sans body darkMuted" x="72" y="1932">透明定价 · 统一接口 · 7×24 小时稳定服务</text><g><rect x="1138" y="1870" width="254" height="64" rx="24" fill="#F5F5F5"/><text class="sans button" x="1185" y="1910" fill="#18191B">查看全部模型价格</text><use href="#arrow" x="1350" y="1890" width="24" height="24" style="color:#18191B"/></g></g>
+  </g>
+</svg>

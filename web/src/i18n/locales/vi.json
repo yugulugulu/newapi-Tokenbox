@@ -5387,6 +5387,58 @@
     "Zero retention": "Không lưu dữ liệu",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "home": {
+      "tokenbox": {
+        "hero": {
+          "badge": "Nhiều mô hình · Độ trễ thấp · Định tuyến ổn định",
+          "titleLine1": "Đưa mọi Token",
+          "titleLine2": "vào một Box.",
+          "description": "Kết nối các mô hình hàng đầu qua một API với chi phí minh bạch và định tuyến ổn định.",
+          "newcomer": "Nhận tín dụng người mới",
+          "pricing": "Xem giá mô hình",
+          "docs": "Tài liệu cấu hình",
+          "models": "Mô hình được hỗ trợ"
+        },
+        "status": {
+          "title": "Trạng thái API",
+          "operational": "Hoạt động ổn định",
+          "gateway": "Cổng hợp nhất",
+          "models": "Nhà cung cấp mô hình"
+        },
+        "onboarding": {
+          "title": "Lộ trình mở hộp cho người mới",
+          "description": "Không cần cấu hình phức tạp. Gửi yêu cầu đầu tiên chỉ trong ba bước.",
+          "createKey": "Tạo API KEY",
+          "benefit": "Tín dụng người dùng mới",
+          "benefitDescription": "Sau khi đăng ký, hãy tham gia cộng đồng và liên hệ hỗ trợ để nhận $5 tín dụng người mới.",
+          "step1Title": "Tạo tài khoản",
+          "step1Description": "Hoàn tất trong vài giây",
+          "step2Title": "Sao chép API Key",
+          "step2Description": "Sao chép an toàn một chạm",
+          "step3Title": "Gửi yêu cầu đầu tiên",
+          "step3Description": "Nhận 200 OK"
+        },
+        "community": {
+          "title": "Tham gia cộng đồng TokenBox",
+          "description": "Chia sẻ trải nghiệm AI với gia đình TokenBox và khám phá những cách sử dụng mới nhất.",
+          "feedbackTitle": "Phản hồi cộng đồng",
+          "feedback1": "Tích hợp API rất tiện lợi. Tôi chỉ cần sửa đổi một chút mã hiện có và nó đã hoạt động.",
+          "feedback2": "Nhiều mô hình để lựa chọn, phù hợp cho phát triển hàng ngày.",
+          "feedback3": "API tạo hình ảnh đã giúp quy trình làm việc của tôi dễ dàng hơn nhiều.",
+          "feedback1Author": "Nhà phát triển",
+          "feedback2Author": "Quản lý sản phẩm",
+          "feedback3Author": "Nhà thiết kế",
+          "qrCallout": "Tham gia và nhận ưu đãi người mới!",
+          "qrLabel": "Mở trang cộng đồng TokenBox",
+          "join": "Tham gia cộng đồng"
+        },
+        "final": {
+          "title": "Đưa mô hình đầu tiên của bạn vào Box.",
+          "description": "Giá minh bạch · API hợp nhất · Dịch vụ ổn định liên tục",
+          "pricing": "Xem toàn bộ giá mô hình"
+        }
+      }
+    }
   }
 }

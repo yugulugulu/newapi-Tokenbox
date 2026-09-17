@@ -5387,6 +5387,58 @@
     "Zero retention": "データ保持なし",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V 4",
-    "Zoom": "ズーム"
+    "Zoom": "ズーム",
+    "home": {
+      "tokenbox": {
+        "hero": {
+          "badge": "複数モデル · 低遅延 · 安定したルーティング",
+          "titleLine1": "すべての Token を",
+          "titleLine2": "ひとつの Box へ。",
+          "description": "ひとつの API で主要モデルに接続。透明な料金と安定したルーティングを提供します。",
+          "newcomer": "新規ユーザークレジット",
+          "pricing": "モデル料金を見る",
+          "docs": "設定ドキュメント",
+          "models": "対応モデル"
+        },
+        "status": {
+          "title": "API ステータス",
+          "operational": "正常稼働",
+          "gateway": "統合ゲートウェイ",
+          "models": "モデルプロバイダー"
+        },
+        "onboarding": {
+          "title": "はじめての開封ルート",
+          "description": "複雑な設定は不要。3 ステップで最初のリクエストを送信できます。",
+          "createKey": "API KEY を作成",
+          "benefit": "新規ユーザークレジット",
+          "benefitDescription": "登録後にコミュニティへ参加し、サポートに連絡して 5 ドル分の特典を受け取れます。",
+          "step1Title": "アカウント作成",
+          "step1Description": "数秒で完了",
+          "step2Title": "API Key をコピー",
+          "step2Description": "安全にワンクリックコピー",
+          "step3Title": "最初のリクエスト",
+          "step3Description": "200 OK を受信"
+        },
+        "community": {
+          "title": "TokenBox コミュニティに参加",
+          "description": "TokenBox ファミリーと AI の使用体験を共有し、最新の使い方を見つけましょう。",
+          "feedbackTitle": "コミュニティフィードバック",
+          "feedback1": "API の統合は非常に便利です。既存のコードを少し修正するだけで動作しました。",
+          "feedback2": "選択できるモデルの種類が豊富で、日常的な開発に適しています。",
+          "feedback3": "画像生成 API のおかげで、ワークフローがはるかに簡単になりました。",
+          "feedback1Author": "開発者",
+          "feedback2Author": "プロダクトマネージャー",
+          "feedback3Author": "デザイナー",
+          "qrCallout": "参加して新規ユーザー特典を受け取りましょう！",
+          "qrLabel": "TokenBox コミュニティページを開く",
+          "join": "コミュニティに参加"
+        },
+        "final": {
+          "title": "最初のモデルを Box に入れましょう。",
+          "description": "透明な料金 · 統合 API · 24 時間安定したサービス",
+          "pricing": "すべてのモデル料金を見る"
+        }
+      }
+    }
   }
 }

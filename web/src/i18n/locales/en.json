@@ -5387,6 +5387,58 @@
     "Zero retention": "Zero retention",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "home": {
+      "tokenbox": {
+        "hero": {
+          "badge": "Multiple models · Low latency · Reliable routing",
+          "titleLine1": "Put every Token",
+          "titleLine2": "into one Box.",
+          "description": "Connect leading models through one API with transparent pricing and reliable routing.",
+          "newcomer": "Claim newcomer credit",
+          "pricing": "View model pricing",
+          "docs": "Configuration docs",
+          "models": "Supported models"
+        },
+        "status": {
+          "title": "API status",
+          "operational": "Operational",
+          "gateway": "Unified gateway",
+          "models": "Model providers"
+        },
+        "onboarding": {
+          "title": "Newcomer unboxing route",
+          "description": "No complex setup. Make your first request in three steps.",
+          "createKey": "Create an API KEY~",
+          "benefit": "New user credit",
+          "benefitDescription": "Join the community after signup and contact support to claim $5 in newcomer credit.",
+          "step1Title": "Create account",
+          "step1Description": "Done in seconds",
+          "step2Title": "Copy API Key",
+          "step2Description": "Secure one-click copy",
+          "step3Title": "Send first request",
+          "step3Description": "Receive 200 OK"
+        },
+        "community": {
+          "title": "Join the TokenBox community",
+          "description": "Share AI experiences with the TokenBox family and discover the latest ways to use it.",
+          "feedbackTitle": "Community Feedback",
+          "feedback1": "The API integration is very convenient. I just modified my existing code slightly and it worked.",
+          "feedback2": "Good variety of models to choose from, suitable for daily development.",
+          "feedback3": "The image generation API made my workflow much easier.",
+          "feedback1Author": "Developer",
+          "feedback2Author": "Product Manager",
+          "feedback3Author": "Designer",
+          "qrCallout": "Join us and claim your newcomer benefits!",
+          "qrLabel": "Open the TokenBox community page",
+          "join": "Join community"
+        },
+        "final": {
+          "title": "Now put your first model into the Box.",
+          "description": "Transparent pricing · Unified API · Reliable service around the clock",
+          "pricing": "View all model pricing"
+        }
+      }
+    }
   }
 }
