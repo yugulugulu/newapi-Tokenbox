@@ -27,12 +27,22 @@ func SetWebRouter(router *gin.Engine, assets WebAssets) {
 	router.Use(middleware.Cache())
 	router.Use(static.Serve("/", frontendFS))
 	
-	// Explicitly handle /docs and /doc routes to ensure they are served by static.Serve
+	// Handle /docs routes - serve docs index.html for directory access
+	router.GET("/doc", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/docs/")
+	})
 	router.GET("/docs", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/docs/")
 	})
-	router.GET("/doc", func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently, "/docs/")
+	router.GET("/docs/", func(c *gin.Context) {
+		// Read docs/index.html from embedded FS
+		data, err := assets.BuildFS.ReadFile("web/dist/docs/index.html")
+		if err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		c.Header("Content-Type", "text/html; charset=utf-8")
+		c.Data(http.StatusOK, "text/html; charset=utf-8", data)
 	})
 	
 	router.NoRoute(func(c *gin.Context) {
