@@ -2080,7 +2080,7 @@
     "footer.columns.related.links.oneApi": "1つのAPI",
     "footer.columns.related.title": "関連プロジェクト",
     "footer.defaultCopyright": "すべての権利を留保します。",
-    "footer.new\u0061pi.projectAttributionSuffix": "すべての権利を留保します。プロジェクトコントリビューターにより設計・開発されています。",
+    "footer.newapi.projectAttributionSuffix": "すべての権利を留保します。プロジェクトコントリビューターにより設計・開発されています。",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "2025 年 5 月 10 日以降に追加されたチャネルの場合、デプロイ時にモデル名から「.」を削除する必要はありません",
     "For private deployments, format: https://fastgpt.run/api/openapi": "プライベートデプロイメントの場合、形式: https://fastgpt.run/api/openapi",
     "Force a syntactically valid JSON response": "構文的に有効な JSON 応答を強制",
@@ -5387,6 +5387,59 @@
     "Zero retention": "データ保持なし",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V 4",
-    "Zoom": "ズーム"
+    "Zoom": "ズーム",
+    "home": {
+      "tokenbox": {
+        "hero": {
+          "badge": "複数モデル · 低遅延 · 安定したルーティング",
+          "titleLine1": "すべての Token を",
+          "titleLine2": "ひとつの Box へ。",
+          "description": "ひとつの API で主要モデルに接続。透明な料金と安定したルーティングを提供します。",
+          "newcomer": "新規ユーザークレジット",
+          "pricing": "モデル料金を見る",
+          "docs": "設定ドキュメント",
+          "models": "対応モデル"
+        },
+        "status": {
+          "title": "API ステータス",
+          "operational": "正常稼働",
+          "gateway": "統合ゲートウェイ",
+          "models": "モデルプロバイダー"
+        },
+        "onboarding": {
+          "title": "はじめての開封ルート",
+          "description": "複雑な設定は不要。3 ステップで最初のリクエストを送信できます。",
+          "createKey": "API KEY を作成",
+          "benefit": "新規ユーザークレジット",
+          "benefitDescription": "登録後にコミュニティへ参加し、サポートに連絡して 5 ドル分の特典を受け取れます。",
+          "step1Title": "アカウント作成",
+          "step1Description": "数秒で完了",
+          "step2Title": "API Key をコピー",
+          "step2Description": "安全にワンクリックコピー",
+          "step3Title": "最初のリクエスト",
+          "step3Description": "200 OK を受信"
+        },
+        "community": {
+          "title": "TokenBox コミュニティに参加",
+          "description": "TokenBox ファミリーと AI の使用体験を共有し、最新の使い方を見つけましょう。",
+          "feedbackTitle": "コミュニティフィードバック",
+          "feedback1": "API の統合は非常に便利です。既存のコードを少し修正するだけで動作しました。",
+          "feedback2": "選択できるモデルの種類が豊富で、日常的な開発に適しています。",
+          "feedback3": "画像生成 API のおかげで、ワークフローがはるかに簡単になりました。",
+          "feedback1Author": "開発者",
+          "feedback2Author": "プロダクトマネージャー",
+          "feedback3Author": "デザイナー",
+          "step1": "コミュニティに参加",
+          "step2": "カスタマーサービスに連絡して、新規ユーザー向け $5 クレジット引き換えコードを取得",
+          "step3": "クレジットを引き換える",
+          "redeem": "クレジットを引き換える"
+        },
+        "final": {
+          "title": "最初のモデルを Box に入れましょう。",
+          "description": "透明な料金 · 統合 API · 24 時間安定したサービス",
+          "pricing": "すべてのモデル料金を見る"
+        }
+      }
+    }
   }
 }

@@ -2080,7 +2080,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "相關項目",
     "footer.defaultCopyright": "版權所有。",
-    "footer.new\u0061pi.projectAttributionSuffix": "版權所有，由項目貢獻者設計與開發。",
+    "footer.newapi.projectAttributionSuffix": "版權所有，由項目貢獻者設計與開發。",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "對於 2025 年 5 月 10 日之後新增的渠道，在部署時無需從模型名稱中移除 \".\"",
     "For private deployments, format: https://fastgpt.run/api/openapi": "對於私有部署，格式為：https://fastgpt.run/api/openapi",
     "Force a syntactically valid JSON response": "強制返回語法合法的 JSON",
@@ -5387,6 +5387,59 @@
     "Zero retention": "零數據保留",
     "Zhipu": "智譜",
     "Zhipu V4": "智譜 V4",
-    "Zoom": "縮放"
+    "Zoom": "縮放",
+    "home": {
+      "tokenbox": {
+        "hero": {
+          "badge": "多模型 · 低延遲 · 穩定可靠",
+          "titleLine1": "把所有 Token，",
+          "titleLine2": "裝進一個 Box.",
+          "description": "一個介面連接主流模型，透明計費，穩定轉發。",
+          "newcomer": "領取新人額度",
+          "pricing": "查看模型價格",
+          "docs": "設定文件",
+          "models": "支援的主流模型"
+        },
+        "status": {
+          "title": "API 狀態",
+          "operational": "穩定運行",
+          "gateway": "統一閘道",
+          "models": "模型服務商"
+        },
+        "onboarding": {
+          "title": "新手開箱路線",
+          "description": "不用研究複雜設定，三步完成第一次呼叫。",
+          "createKey": "建立一個 API KEY～",
+          "benefit": "新人體驗額度",
+          "benefitDescription": "註冊後加入社群，聯絡客服領取 $5 新人額度",
+          "step1Title": "註冊帳號",
+          "step1Description": "幾秒完成",
+          "step2Title": "複製 API Key",
+          "step2Description": "一鍵安全複製",
+          "step3Title": "傳送首次請求",
+          "step3Description": "取得 200 OK"
+        },
+        "community": {
+          "title": "加入 TokenBox 社群",
+          "description": "與 TokenBox 家人們一起交流 AI 使用體驗，獲取最新玩法",
+          "feedbackTitle": "社區反饋",
+          "feedback1": "接入 API 很方便，之前的代碼稍微修改就能跑起來。",
+          "feedback2": "模型選擇比較豐富，適合日常開發使用。",
+          "feedback3": "圖片生成接口接入後，工作流方便了不少。",
+          "feedback1Author": "開發者",
+          "feedback2Author": "產品經理",
+          "feedback3Author": "設計師",
+          "step1": "加入社群",
+          "step2": "聯繫客服領取 $5 新人額度兌換碼",
+          "step3": "兌換額度",
+          "redeem": "兌換額度"
+        },
+        "final": {
+          "title": "現在，把第一個模型裝進 Box。",
+          "description": "透明定價 · 統一介面 · 全天候穩定服務",
+          "pricing": "查看全部模型價格"
+        }
+      }
+    }
   }
 }

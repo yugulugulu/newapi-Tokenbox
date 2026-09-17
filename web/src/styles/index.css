@@ -492,6 +492,20 @@ For commercial licensing, please contact support@quantumnous.com
   }
 }
 
+@keyframes tokenbox-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(1deg);
+  }
+}
+
+.tokenbox-mascot-float {
+  animation: tokenbox-float 6s ease-in-out infinite;
+}
+
 .landing-animate-fade-up {
   animation: landing-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -517,6 +531,10 @@ For commercial licensing, please contact support@quantumnous.com
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+  }
+
+  .tokenbox-mascot-float {
+    animation: none !important;
   }
 }
 

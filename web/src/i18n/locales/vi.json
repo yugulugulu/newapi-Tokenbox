@@ -2080,7 +2080,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "Các Dự Án Liên Quan",
     "footer.defaultCopyright": "Bản quyền được bảo lưu.",
-    "footer.new\u0061pi.projectAttributionSuffix": "Bản quyền được bảo lưu. Được thiết kế và phát triển bởi các cộng tác viên dự án.",
+    "footer.newapi.projectAttributionSuffix": "Bản quyền được bảo lưu. Được thiết kế và phát triển bởi các cộng tác viên dự án.",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "Đối với các kênh được thêm sau ngày 10 tháng 5 năm 2025, không cần loại bỏ \".\" khỏi tên mô hình trong quá trình triển khai",
     "For private deployments, format: https://fastgpt.run/api/openapi": "Đối với các triển khai riêng tư, định dạng: https://fastgpt.run/api/openapi",
     "Force a syntactically valid JSON response": "Buộc phản hồi JSON hợp lệ về cú pháp",
@@ -5387,6 +5387,59 @@
     "Zero retention": "Không lưu dữ liệu",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "home": {
+      "tokenbox": {
+        "hero": {
+          "badge": "Nhiều mô hình · Độ trễ thấp · Định tuyến ổn định",
+          "titleLine1": "Đưa mọi Token",
+          "titleLine2": "vào một Box.",
+          "description": "Kết nối các mô hình hàng đầu qua một API với chi phí minh bạch và định tuyến ổn định.",
+          "newcomer": "Nhận tín dụng người mới",
+          "pricing": "Xem giá mô hình",
+          "docs": "Tài liệu cấu hình",
+          "models": "Mô hình được hỗ trợ"
+        },
+        "status": {
+          "title": "Trạng thái API",
+          "operational": "Hoạt động ổn định",
+          "gateway": "Cổng hợp nhất",
+          "models": "Nhà cung cấp mô hình"
+        },
+        "onboarding": {
+          "title": "Lộ trình mở hộp cho người mới",
+          "description": "Không cần cấu hình phức tạp. Gửi yêu cầu đầu tiên chỉ trong ba bước.",
+          "createKey": "Tạo API KEY",
+          "benefit": "Tín dụng người dùng mới",
+          "benefitDescription": "Sau khi đăng ký, hãy tham gia cộng đồng và liên hệ hỗ trợ để nhận $5 tín dụng người mới.",
+          "step1Title": "Tạo tài khoản",
+          "step1Description": "Hoàn tất trong vài giây",
+          "step2Title": "Sao chép API Key",
+          "step2Description": "Sao chép an toàn một chạm",
+          "step3Title": "Gửi yêu cầu đầu tiên",
+          "step3Description": "Nhận 200 OK"
+        },
+        "community": {
+          "title": "Tham gia cộng đồng TokenBox",
+          "description": "Chia sẻ trải nghiệm AI với gia đình TokenBox và khám phá những cách sử dụng mới nhất.",
+          "feedbackTitle": "Phản hồi cộng đồng",
+          "feedback1": "Tích hợp API rất tiện lợi. Tôi chỉ cần sửa đổi một chút mã hiện có và nó đã hoạt động.",
+          "feedback2": "Nhiều mô hình để lựa chọn, phù hợp cho phát triển hàng ngày.",
+          "feedback3": "API tạo hình ảnh đã giúp quy trình làm việc của tôi dễ dàng hơn nhiều.",
+          "feedback1Author": "Nhà phát triển",
+          "feedback2Author": "Quản lý sản phẩm",
+          "feedback3Author": "Nhà thiết kế",
+          "step1": "Tham gia cộng đồng",
+          "step2": "Liên hệ dịch vụ khách hàng để nhận mã đổi tín dụng người dùng mới $5",
+          "step3": "Đổi tín dụng",
+          "redeem": "Đổi tín dụng"
+        },
+        "final": {
+          "title": "Đưa mô hình đầu tiên của bạn vào Box.",
+          "description": "Giá minh bạch · API hợp nhất · Dịch vụ ổn định liên tục",
+          "pricing": "Xem toàn bộ giá mô hình"
+        }
+      }
+    }
   }
 }
