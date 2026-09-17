@@ -19,12 +19,28 @@ For commercial licensing, please contact support@quantumnous.com
 import { ArrowUpRight, MessageCircleMore, User } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { Link } from '@tanstack/react-router'
+
 import { AnimateInView } from '@/components/animate-in-view'
 import { Button } from '@/components/ui/button'
 
 import { TokenBoxMascot } from '../tokenbox-mascot'
 
-const QQ_GROUP_URL = 'mqqwpa://im/chat?chat_type=group&uin=1048793882'
+const WALLET_REDEMPTION_STEPS = [
+  {
+    step: 1,
+    translationKey: 'home.tokenbox.community.step1',
+  },
+  {
+    step: 2,
+    translationKey: 'home.tokenbox.community.step2',
+  },
+  {
+    step: 3,
+    translationKey: 'home.tokenbox.community.step3',
+  },
+] as const
+
 const COMMUNITY_FEEDBACKS = [
   {
     key: 'api',
@@ -104,36 +120,37 @@ export function TokenBoxCommunity() {
             </div>
           </div>
 
-          <div className='bg-background border-border dark:bg-muted/60 relative flex min-h-[380px] flex-col items-center justify-end rounded-2xl border px-5 py-6 shadow-sm'>
-            <div className='absolute top-6 right-4 z-10 w-[calc(100%-32px)]'>
-              <div className='border-primary/20 bg-primary/10 text-foreground relative ml-auto max-w-[210px] rounded-2xl rounded-br-md border px-3.5 py-2.5 text-center text-xs leading-5 font-bold shadow-sm'>
-                {t('home.tokenbox.community.qrCallout')}
+          <div className='bg-background border-border dark:bg-muted/60 relative flex min-h-[420px] flex-col items-center justify-end rounded-2xl border px-5 py-7 shadow-sm'>
+            <div className='absolute top-5 right-4 z-10 w-[calc(100%-32px)]'>
+              <div className='border-primary/20 bg-primary/10 text-foreground relative ml-auto max-w-[230px] rounded-2xl rounded-br-md border px-4 py-3 text-xs leading-6 font-semibold shadow-sm'>
+                <div className='space-y-1.5'>
+                  {WALLET_REDEMPTION_STEPS.map((item) => (
+                    <div key={item.step} className='flex items-start gap-1.5'>
+                      <span className='text-primary mt-0.5 shrink-0 font-bold'>
+                        {item.step}.
+                      </span>
+                      <span>{t(item.translationKey)}</span>
+                    </div>
+                  ))}
+                </div>
                 <span className='border-primary/20 absolute -right-2 bottom-[-8px] size-4 rotate-45 border-r border-b bg-[color-mix(in_oklab,var(--primary)_10%,transparent)]' />
               </div>
             </div>
             <div className='pointer-events-none absolute top-[-12px] right-[-6px] w-[90px] rotate-6'>
               <TokenBoxMascot />
             </div>
-            <a
-              href={QQ_GROUP_URL}
-              target='_blank'
-              rel='noreferrer'
-              aria-label={t('home.tokenbox.community.qrLabel')}
-              className='overflow-hidden rounded-lg bg-white p-3.5 shadow-lg ring-1 ring-black/5'
-            >
+            <div className='overflow-hidden rounded-lg bg-white p-3.5 shadow-lg ring-1 ring-black/5'>
               <img
                 src='/images/tokenbox-qq-group.png'
                 alt='TokenBox QQ群'
                 className='h-[160px] w-[160px] object-contain'
               />
-            </a>
+            </div>
             <Button
               className='mt-4 h-11 w-full rounded-xl'
-              render={
-                <a href={QQ_GROUP_URL} target='_blank' rel='noreferrer' />
-              }
+              render={<Link to='/wallet' />}
             >
-              {t('home.tokenbox.community.join')}
+              {t('home.tokenbox.community.redeem')}
               <ArrowUpRight className='size-4' aria-hidden='true' />
             </Button>
           </div>

@@ -2080,7 +2080,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "Các Dự Án Liên Quan",
     "footer.defaultCopyright": "Bản quyền được bảo lưu.",
-    "footer.new\u0061pi.projectAttributionSuffix": "Bản quyền được bảo lưu. Được thiết kế và phát triển bởi các cộng tác viên dự án.",
+    "footer.newapi.projectAttributionSuffix": "Bản quyền được bảo lưu. Được thiết kế và phát triển bởi các cộng tác viên dự án.",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "Đối với các kênh được thêm sau ngày 10 tháng 5 năm 2025, không cần loại bỏ \".\" khỏi tên mô hình trong quá trình triển khai",
     "For private deployments, format: https://fastgpt.run/api/openapi": "Đối với các triển khai riêng tư, định dạng: https://fastgpt.run/api/openapi",
     "Force a syntactically valid JSON response": "Buộc phản hồi JSON hợp lệ về cú pháp",
@@ -5429,9 +5429,10 @@
           "feedback1Author": "Nhà phát triển",
           "feedback2Author": "Quản lý sản phẩm",
           "feedback3Author": "Nhà thiết kế",
-          "qrCallout": "Tham gia và nhận ưu đãi người mới!",
-          "qrLabel": "Mở trang cộng đồng TokenBox",
-          "join": "Tham gia cộng đồng"
+          "step1": "Tham gia cộng đồng",
+          "step2": "Liên hệ dịch vụ khách hàng để nhận mã đổi tín dụng người dùng mới $5",
+          "step3": "Đổi tín dụng",
+          "redeem": "Đổi tín dụng"
         },
         "final": {
           "title": "Đưa mô hình đầu tiên của bạn vào Box.",

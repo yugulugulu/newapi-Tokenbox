@@ -2080,7 +2080,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "Related Projects",
     "footer.defaultCopyright": "All rights reserved.",
-    "footer.new\u0061pi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
+    "footer.newapi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment",
     "For private deployments, format: https://fastgpt.run/api/openapi": "For private deployments, format: https://fastgpt.run/api/openapi",
     "Force a syntactically valid JSON response": "Force a syntactically valid JSON response",
@@ -5429,9 +5429,10 @@
           "feedback1Author": "Developer",
           "feedback2Author": "Product Manager",
           "feedback3Author": "Designer",
-          "qrCallout": "Join us and claim your newcomer benefits!",
-          "qrLabel": "Open the TokenBox community page",
-          "join": "Join community"
+          "step1": "Join the community",
+          "step2": "Contact customer service to get $5 newcomer credit redemption code",
+          "step3": "Redeem credits",
+          "redeem": "Redeem Credits"
         },
         "final": {
           "title": "Now put your first model into the Box.",
