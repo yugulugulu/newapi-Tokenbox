@@ -26,12 +26,17 @@ func SetWebRouter(router *gin.Engine, assets WebAssets) {
 	router.Use(middleware.GlobalWebRateLimit())
 	router.Use(middleware.Cache())
 	router.Use(static.Serve("/", frontendFS))
+	
+	// Explicitly handle /docs and /doc routes to ensure they are served by static.Serve
+	router.GET("/docs", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/docs/")
+	})
+	router.GET("/doc", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/docs/")
+	})
+	
 	router.NoRoute(func(c *gin.Context) {
 		c.Set(middleware.RouteTagKey, "web")
-		// Allow static files under /docs to be served
-		if strings.HasPrefix(c.Request.RequestURI, "/docs") {
-			return
-		}
 		if strings.HasPrefix(c.Request.RequestURI, "/v1") || strings.HasPrefix(c.Request.RequestURI, "/api") || strings.HasPrefix(c.Request.RequestURI, "/assets") {
 			controller.RelayNotFound(c)
 			return
