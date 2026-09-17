@@ -11,3 +11,6 @@ Makefile
 .gocache
 /web/node_modules
 /web/dist
+/docs/node_modules
+/docs/.vitepress/dist
+/docs/.vitepress/cache
