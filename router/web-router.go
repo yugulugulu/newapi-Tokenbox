@@ -28,6 +28,10 @@ func SetWebRouter(router *gin.Engine, assets WebAssets) {
 	router.Use(static.Serve("/", frontendFS))
 	router.NoRoute(func(c *gin.Context) {
 		c.Set(middleware.RouteTagKey, "web")
+		// Allow static files under /docs to be served
+		if strings.HasPrefix(c.Request.RequestURI, "/docs") {
+			return
+		}
 		if strings.HasPrefix(c.Request.RequestURI, "/v1") || strings.HasPrefix(c.Request.RequestURI, "/api") || strings.HasPrefix(c.Request.RequestURI, "/assets") {
 			controller.RelayNotFound(c)
 			return
