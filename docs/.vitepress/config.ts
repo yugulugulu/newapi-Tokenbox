@@ -5,7 +5,7 @@ export default defineConfig({
   description: '把所有 Token，装进一个 Box',
   lang: 'zh-CN',
   base: '/docs/',
-  lastUpdated: true,
+  lastUpdated: false, // 禁用 Git 时间戳
   cleanUrls: true,
 
   head: [
@@ -85,14 +85,6 @@ export default defineConfig({
     docFooter: {
       prev: '上一篇',
       next: '下一篇'
-    },
-
-    lastUpdated: {
-      text: '最后更新',
-      formatOptions: {
-        dateStyle: 'short',
-        timeStyle: 'short'
-      }
     }
   }
 })
