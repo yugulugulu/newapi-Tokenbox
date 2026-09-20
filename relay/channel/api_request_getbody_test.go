@@ -251,6 +251,60 @@ func TestDoTaskApiRequest_KeepsReplayableGetBody(t *testing.T) {
 	}
 }
 
+func TestDoTaskApiRequestAppliesConfiguredClientHeaderPassthrough(t *testing.T) {
+	service.InitHttpClient()
+
+	received := make(chan string, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received <- r.Header.Get("X-Consumer-Id")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/video/generations", bytes.NewReader([]byte(`{"model":"test-model"}`)))
+	ctx.Request.Header.Set("X-Consumer-Id", "user_123")
+
+	info := &relaycommon.RelayInfo{
+		ChannelMeta: &relaycommon.ChannelMeta{
+			HeadersOverride: map[string]any{"*": ""},
+		},
+	}
+	adaptor := &stubTaskAdaptor{baseURL: server.URL}
+	resp, err := DoTaskApiRequest(adaptor, ctx, info, bytes.NewReader([]byte(`{"model":"test-model"}`)))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, "user_123", <-received)
+}
+
+func TestDoTaskApiRequestDoesNotPassClientHeadersWithoutConfiguration(t *testing.T) {
+	service.InitHttpClient()
+
+	received := make(chan string, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received <- r.Header.Get("X-Consumer-Id")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/video/generations", bytes.NewReader([]byte(`{"model":"test-model"}`)))
+	ctx.Request.Header.Set("X-Consumer-Id", "user_123")
+
+	info := &relaycommon.RelayInfo{ChannelMeta: &relaycommon.ChannelMeta{}}
+	adaptor := &stubTaskAdaptor{baseURL: server.URL}
+	resp, err := DoTaskApiRequest(adaptor, ctx, info, bytes.NewReader([]byte(`{"model":"test-model"}`)))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Empty(t, <-received)
+}
+
 type h2ServerResult struct {
 	err           error
 	streamCount   int
