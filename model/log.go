@@ -251,7 +251,12 @@ func RecordOperationAuditLog(logUserId int, content string, ip string, action st
 	}
 }
 
-func RecordTopupLog(userId int, content string, callerIp string, paymentMethod string, callbackPaymentMethod string) {
+const (
+	TopupSourceRedemption = "redemption"
+	TopupSourceDirect     = "direct"
+)
+
+func RecordTopupLog(userId int, quota int, source string, content string, callerIp string, paymentMethod string, callbackPaymentMethod string) {
 	username, _ := GetUsernameById(userId, false)
 	adminInfo := map[string]interface{}{
 		"server_ip":               common.GetIp(),
@@ -262,7 +267,8 @@ func RecordTopupLog(userId int, content string, callerIp string, paymentMethod s
 		"version":                 common.Version,
 	}
 	other := map[string]interface{}{
-		"admin_info": adminInfo,
+		"admin_info":   adminInfo,
+		"topup_source": source,
 	}
 	log := &Log{
 		UserId:    userId,
@@ -270,6 +276,7 @@ func RecordTopupLog(userId int, content string, callerIp string, paymentMethod s
 		CreatedAt: common.GetTimestamp(),
 		Type:      LogTypeTopup,
 		Content:   content,
+		Quota:     quota,
 		Ip:        callerIp,
 		Other:     common.MapToJsonStr(other),
 	}
@@ -610,10 +617,13 @@ func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int
 }
 
 type Stat struct {
-	Quota       int `json:"quota"`
-	RefundQuota int `json:"refund_quota"`
-	Rpm         int `json:"rpm"`
-	Tpm         int `json:"tpm"`
+	Quota            int   `json:"quota"`
+	RefundQuota      int   `json:"refund_quota"`
+	TopupQuota       int64 `json:"topup_quota"`
+	RedemptionQuota  int64 `json:"redemption_quota"`
+	DirectTopupQuota int64 `json:"direct_topup_quota"`
+	Rpm              int   `json:"rpm"`
+	Tpm              int   `json:"tpm"`
 }
 
 func applyLogStatFilters(tx *gorm.DB, modelName string, username string, tokenName string, channel int, group string) (*gorm.DB, error) {
@@ -646,7 +656,7 @@ func applyLogStatTimeFilters(tx *gorm.DB, startTimestamp int64, endTimestamp int
 	return tx
 }
 
-func SumUsedQuota(_ int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, group string) (stat Stat, err error) {
+func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, group string) (stat Stat, err error) {
 	quotaQuery := LOG_DB.Table("logs").Select("COALESCE(sum(quota), 0) quota").Where("type = ?", LogTypeConsume)
 	refundQuery := LOG_DB.Table("logs").Select("COALESCE(sum(quota), 0) refund_quota").Where("type = ?", LogTypeRefund)
 	rpmTpmQuery := LOG_DB.Table("logs").Select("count(*) rpm, COALESCE(sum(prompt_tokens), 0) + COALESCE(sum(completion_tokens), 0) tpm").Where("type = ?", LogTypeConsume)
@@ -680,6 +690,17 @@ func SumUsedQuota(_ int, startTimestamp int64, endTimestamp int64, modelName str
 		return stat, errors.New("查询统计数据失败")
 	}
 	stat.RefundQuota = refundStat.RefundQuota
+
+	if logType == LogTypeTopup {
+		// Recharge records do not carry model, token, channel, or group values.
+		if modelName == "" && tokenName == "" && channel == 0 && group == "" {
+			stat.TopupQuota, stat.RedemptionQuota, stat.DirectTopupQuota, err = SumTopupQuota(startTimestamp, endTimestamp, username)
+			if err != nil {
+				common.SysError("failed to query topup stat: " + err.Error())
+				return stat, errors.New("查询统计数据失败")
+			}
+		}
+	}
 
 	// 只统计最近60秒的消费日志的rpm和tpm。
 	rpmTpmQuery = rpmTpmQuery.Where("created_at >= ?", time.Now().Add(-60*time.Second).Unix())

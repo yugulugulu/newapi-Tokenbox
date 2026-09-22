@@ -141,6 +141,13 @@ func TestRedeemCreditsQuotaExactlyOnce(t *testing.T) {
 	assert.Equal(t, common.RedemptionCodeStatusUsed, redemption.Status)
 	assert.Equal(t, userId, redemption.UsedUserId)
 
+	var topupLog Log
+	require.NoError(t, LOG_DB.Where("user_id = ? AND type = ?", userId, LogTypeTopup).First(&topupLog).Error)
+	assert.Equal(t, 500, topupLog.Quota)
+	other, err := common.StrToMap(topupLog.Other)
+	require.NoError(t, err)
+	assert.Equal(t, TopupSourceRedemption, other["topup_source"])
+
 	// Redeeming the same code again must fail and must not credit quota.
 	_, err = Redeem(key, userId)
 	require.Error(t, err)

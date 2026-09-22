@@ -25,7 +25,7 @@ import { formatLogQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import { getLogStats, getUserLogStats } from '../api'
-import { DEFAULT_LOG_STATS } from '../constants'
+import { DEFAULT_LOG_STATS, LOG_TYPE_ENUM } from '../constants'
 import { buildApiParams } from '../lib/utils'
 import type { LogStatistics } from '../types'
 import { useLogsViewScope, useUsageLogsContext } from './usage-logs-provider'
@@ -51,8 +51,34 @@ function StatBadge(props: {
 export function LogStatsBadges(props: {
   stats?: Partial<LogStatistics>
   sensitiveVisible: boolean
+  showTopupStats?: boolean
 }) {
   const { t } = useTranslation()
+
+  if (props.showTopupStats) {
+    const formatValue = (quota: number | undefined) =>
+      props.sensitiveVisible ? formatLogQuota(quota || 0) : '••••'
+
+    return (
+      <div className='flex flex-wrap items-center gap-2'>
+        <StatBadge
+          label={t('Total recharge amount')}
+          value={formatValue(props.stats?.topup_quota)}
+          accent='bg-cyan-500/70'
+        />
+        <StatBadge
+          label={t('Redemption Code')}
+          value={formatValue(props.stats?.redemption_quota)}
+          accent='bg-amber-500/70'
+        />
+        <StatBadge
+          label={t('Recharge')}
+          value={formatValue(props.stats?.direct_topup_quota)}
+          accent='bg-emerald-500/70'
+        />
+      </div>
+    )
+  }
 
   return (
     <div className='flex flex-wrap items-center gap-2'>
@@ -92,6 +118,10 @@ export function CommonLogsStats() {
   const { isAdminView: isAdmin } = useLogsViewScope()
   const searchParams = route.useSearch()
   const { sensitiveVisible } = useUsageLogsContext()
+  const selectedType = Array.isArray(searchParams.type)
+    ? Number(searchParams.type[0])
+    : Number(searchParams.type)
+  const showTopupStats = selectedType === LOG_TYPE_ENUM.TOPUP
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['usage-logs-stats', isAdmin, searchParams],
@@ -120,11 +150,17 @@ export function CommonLogsStats() {
       <div className='flex items-center gap-2'>
         <Skeleton className='h-7 w-[150px] rounded-md' />
         <Skeleton className='h-7 w-[150px] rounded-md' />
-        <Skeleton className='h-7 w-[100px] rounded-md' />
-        <Skeleton className='h-7 w-[120px] rounded-md' />
+        <Skeleton className='h-7 w-[150px] rounded-md' />
+        {!showTopupStats && <Skeleton className='h-7 w-[120px] rounded-md' />}
       </div>
     )
   }
 
-  return <LogStatsBadges stats={stats} sensitiveVisible={sensitiveVisible} />
+  return (
+    <LogStatsBadges
+      stats={stats}
+      sensitiveVisible={sensitiveVisible}
+      showTopupStats={showTopupStats}
+    />
+  )
 }
