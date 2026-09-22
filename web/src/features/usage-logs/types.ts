@@ -254,6 +254,9 @@ export interface LogOtherData {
 export interface LogStatistics {
   quota: number
   refund_quota: number
+  topup_quota: number
+  redemption_quota: number
+  direct_topup_quota: number
   rpm: number
   tpm: number
 }

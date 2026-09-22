@@ -3,6 +3,8 @@ package model
 import (
 	"errors"
 	"fmt"
+	"math"
+	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
@@ -59,6 +61,81 @@ func (topUp *TopUp) Update() error {
 	var err error
 	err = DB.Save(topUp).Error
 	return err
+}
+
+func SumTopupQuota(startTimestamp int64, endTimestamp int64, username string) (total int64, redemptionTotal int64, directTotal int64, err error) {
+	userIds := DB.Unscoped().Model(&User{}).Select("id")
+	if username != "" {
+		if strings.Contains(username, "%") {
+			pattern, patternErr := sanitizeLikePattern(username)
+			if patternErr != nil {
+				return 0, 0, 0, patternErr
+			}
+			userIds = userIds.Where("username LIKE ? ESCAPE '!'", pattern)
+		} else {
+			userIds = userIds.Where("username = ?", username)
+		}
+	}
+
+	directQuery := DB.Model(&TopUp{}).
+		Select("amount", "money", "payment_provider", "payment_method").
+		Where("status = ? AND amount > 0", common.TopUpStatusSuccess)
+	redemptionQuery := DB.Unscoped().Model(&Redemption{}).
+		Select("quota").
+		Where("status = ? AND quota > 0", common.RedemptionCodeStatusUsed)
+	if username != "" {
+		directQuery = directQuery.Where("user_id IN (?)", userIds)
+		redemptionQuery = redemptionQuery.Where("used_user_id IN (?)", userIds)
+	}
+	if startTimestamp != 0 {
+		directQuery = directQuery.Where("complete_time >= ?", startTimestamp)
+		redemptionQuery = redemptionQuery.Where("redeemed_time >= ?", startTimestamp)
+	}
+	if endTimestamp != 0 {
+		directQuery = directQuery.Where("complete_time <= ?", endTimestamp)
+		redemptionQuery = redemptionQuery.Where("redeemed_time <= ?", endTimestamp)
+	}
+
+	var topUps []TopUp
+	if err = directQuery.Find(&topUps).Error; err != nil {
+		return 0, 0, 0, err
+	}
+	quotaPerUnit := decimal.NewFromFloat(common.QuotaPerUnit)
+	for _, topUp := range topUps {
+		provider := topUp.PaymentProvider
+		if provider == "" {
+			provider = topUp.PaymentMethod
+		}
+		var quota int
+		switch provider {
+		case PaymentProviderStripe:
+			quota = common.QuotaFromDecimal(decimal.NewFromFloat(topUp.Money).Mul(quotaPerUnit))
+		case PaymentProviderCreem:
+			quota = common.QuotaFromDecimal(decimal.NewFromInt(topUp.Amount))
+		default:
+			quota = common.QuotaFromDecimal(decimal.NewFromInt(topUp.Amount).Mul(quotaPerUnit))
+		}
+		if int64(quota) > math.MaxInt64-directTotal {
+			return 0, 0, 0, errors.New("direct topup quota total overflow")
+		}
+		directTotal += int64(quota)
+	}
+
+	var redemptions []Redemption
+	if err = redemptionQuery.Find(&redemptions).Error; err != nil {
+		return 0, 0, 0, err
+	}
+	for _, redemption := range redemptions {
+		if int64(redemption.Quota) > math.MaxInt64-redemptionTotal {
+			return 0, 0, 0, errors.New("redemption quota total overflow")
+		}
+		redemptionTotal += int64(redemption.Quota)
+	}
+	if redemptionTotal > math.MaxInt64-directTotal {
+		return 0, 0, 0, errors.New("topup quota total overflow")
+	}
+	total = directTotal + redemptionTotal
+	return total, redemptionTotal, directTotal, nil
 }
 
 func GetTopUpById(id int) *TopUp {
@@ -156,7 +233,8 @@ func Recharge(referenceId string, customerId string, callerIp string) (err error
 		return errors.New("充值失败，请稍后重试")
 	}
 
-	RecordTopupLog(topUp.UserId, fmt.Sprintf("使用在线充值成功，充值金额: %v，支付金额：%d", logger.FormatQuota(int(quota)), topUp.Amount), callerIp, topUp.PaymentMethod, PaymentMethodStripe)
+	quotaToAdd := common.QuotaFromFloat(quota)
+	RecordTopupLog(topUp.UserId, quotaToAdd, TopupSourceDirect, fmt.Sprintf("使用在线充值成功，充值金额: %v，支付金额：%d", logger.FormatQuota(quotaToAdd), topUp.Amount), callerIp, topUp.PaymentMethod, PaymentMethodStripe)
 
 	return nil
 }
@@ -436,7 +514,7 @@ func ManualCompleteTopUp(tradeNo string, callerIp string) error {
 	}
 
 	// 事务外记录日志，避免阻塞
-	RecordTopupLog(userId, fmt.Sprintf("管理员补单成功，充值金额: %v，支付金额：%f", logger.FormatQuota(quotaToAdd), payMoney), callerIp, paymentMethod, "admin")
+	RecordTopupLog(userId, quotaToAdd, TopupSourceDirect, fmt.Sprintf("管理员补单成功，充值金额: %v，支付金额：%f", logger.FormatQuota(quotaToAdd), payMoney), callerIp, paymentMethod, "admin")
 	return nil
 }
 func RechargeCreem(referenceId string, customerEmail string, customerName string, callerIp string) (err error) {
@@ -509,7 +587,8 @@ func RechargeCreem(referenceId string, customerEmail string, customerName string
 		return errors.New("充值失败，请稍后重试")
 	}
 
-	RecordTopupLog(topUp.UserId, fmt.Sprintf("使用Creem充值成功，充值额度: %v，支付金额：%.2f", quota, topUp.Money), callerIp, topUp.PaymentMethod, PaymentMethodCreem)
+	loggedQuota := common.QuotaFromDecimal(decimal.NewFromInt(quota))
+	RecordTopupLog(topUp.UserId, loggedQuota, TopupSourceDirect, fmt.Sprintf("使用Creem充值成功，充值额度: %v，支付金额：%.2f", quota, topUp.Money), callerIp, topUp.PaymentMethod, PaymentMethodCreem)
 
 	return nil
 }
@@ -571,7 +650,7 @@ func RechargeWaffo(tradeNo string, callerIp string) (err error) {
 	}
 
 	if quotaToAdd > 0 {
-		RecordTopupLog(topUp.UserId, fmt.Sprintf("Waffo充值成功，充值额度: %v，支付金额: %.2f", logger.FormatQuota(quotaToAdd), topUp.Money), callerIp, topUp.PaymentMethod, PaymentMethodWaffo)
+		RecordTopupLog(topUp.UserId, quotaToAdd, TopupSourceDirect, fmt.Sprintf("Waffo充值成功，充值额度: %v，支付金额: %.2f", logger.FormatQuota(quotaToAdd), topUp.Money), callerIp, topUp.PaymentMethod, PaymentMethodWaffo)
 	}
 
 	return nil
@@ -632,7 +711,7 @@ func RechargeWaffoPancake(tradeNo string) (err error) {
 	}
 
 	if quotaToAdd > 0 {
-		RecordLog(topUp.UserId, LogTypeTopup, fmt.Sprintf("Waffo Pancake充值成功，充值额度: %v，支付金额: %.2f", logger.FormatQuota(quotaToAdd), topUp.Money))
+		RecordTopupLog(topUp.UserId, quotaToAdd, TopupSourceDirect, fmt.Sprintf("Waffo Pancake充值成功，充值额度: %v，支付金额: %.2f", logger.FormatQuota(quotaToAdd), topUp.Money), "", topUp.PaymentMethod, PaymentMethodWaffoPancake)
 	}
 
 	return nil
