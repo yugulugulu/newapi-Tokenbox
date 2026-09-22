@@ -253,6 +253,7 @@ export interface LogOtherData {
  */
 export interface LogStatistics {
   quota: number
+  refund_quota: number
   rpm: number
   tpm: number
 }

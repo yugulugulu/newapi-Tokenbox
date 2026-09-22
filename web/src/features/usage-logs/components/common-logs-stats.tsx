@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils'
 import { getLogStats, getUserLogStats } from '../api'
 import { DEFAULT_LOG_STATS } from '../constants'
 import { buildApiParams } from '../lib/utils'
+import type { LogStatistics } from '../types'
 import { useLogsViewScope, useUsageLogsContext } from './usage-logs-provider'
 
 const route = getRouteApi('/_authenticated/usage-logs/$section')
@@ -47,8 +48,47 @@ function StatBadge(props: {
   )
 }
 
-export function CommonLogsStats() {
+export function LogStatsBadges(props: {
+  stats?: Partial<LogStatistics>
+  sensitiveVisible: boolean
+}) {
   const { t } = useTranslation()
+
+  return (
+    <div className='flex flex-wrap items-center gap-2'>
+      <StatBadge
+        label={t('Usage')}
+        value={
+          props.sensitiveVisible
+            ? formatLogQuota(props.stats?.quota || 0)
+            : '••••'
+        }
+        accent='bg-sky-500/70'
+      />
+      <StatBadge
+        label={t('Refund')}
+        value={
+          props.sensitiveVisible
+            ? formatLogQuota(props.stats?.refund_quota || 0)
+            : '••••'
+        }
+        accent='bg-emerald-500/70'
+      />
+      <StatBadge
+        label={t('RPM')}
+        value={props.stats?.rpm || 0}
+        accent='bg-rose-500/65'
+      />
+      <StatBadge
+        label={t('TPM')}
+        value={props.stats?.tpm || 0}
+        accent='bg-slate-400/70'
+      />
+    </div>
+  )
+}
+
+export function CommonLogsStats() {
   const { isAdminView: isAdmin } = useLogsViewScope()
   const searchParams = route.useSearch()
   const { sensitiveVisible } = useUsageLogsContext()
@@ -79,29 +119,12 @@ export function CommonLogsStats() {
     return (
       <div className='flex items-center gap-2'>
         <Skeleton className='h-7 w-[150px] rounded-md' />
+        <Skeleton className='h-7 w-[150px] rounded-md' />
         <Skeleton className='h-7 w-[100px] rounded-md' />
         <Skeleton className='h-7 w-[120px] rounded-md' />
       </div>
     )
   }
 
-  return (
-    <div className='flex flex-wrap items-center gap-2'>
-      <StatBadge
-        label={t('Usage')}
-        value={sensitiveVisible ? formatLogQuota(stats?.quota || 0) : '••••'}
-        accent='bg-sky-500/70'
-      />
-      <StatBadge
-        label={t('RPM')}
-        value={stats?.rpm || 0}
-        accent='bg-rose-500/65'
-      />
-      <StatBadge
-        label={t('TPM')}
-        value={stats?.tpm || 0}
-        accent='bg-slate-400/70'
-      />
-    </div>
-  )
+  return <LogStatsBadges stats={stats} sensitiveVisible={sensitiveVisible} />
 }
