@@ -308,18 +308,47 @@ func TestPrepareTaskV2BillingNoVideoDoesNotProbe(t *testing.T) {
 
 func TestPrepareTaskV2BillingRejectsUnsupportedResolution(t *testing.T) {
 	expr := `v2:param("resolution") == "720p" ? tier("720p", charge("per_second", quantity, 0.51)) : tier("__unsupported_resolution__", charge("per_call", quantity, 0))`
+	models := []string{"doubao-seedance-2-0-260128", "doubao-seedance-2-5-pro", "other-video-model"}
+	modes := make(map[string]string, len(models))
+	expressions := make(map[string]string, len(models))
+	for _, model := range models {
+		modes[model] = "tiered_expr"
+		expressions[model] = expr
+	}
 	configureTaskV2BillingTest(t,
-		billingSettingJSON(t, map[string]string{"doubao-seedance-2-0-260128": "tiered_expr"}),
-		billingSettingJSON(t, map[string]string{"doubao-seedance-2-0-260128": expr}),
+		billingSettingJSON(t, modes),
+		billingSettingJSON(t, expressions),
 	)
-	c, info := newTaskV2BillingContext(relaycommon.TaskSubmitReq{Duration: 5, Resolution: "1080p"})
-	info.OriginModelName = "doubao-seedance-2-0-260128"
+	for _, model := range models {
+		t.Run(model, func(t *testing.T) {
+			c, info := newTaskV2BillingContext(relaycommon.TaskSubmitReq{Duration: 5, Resolution: "1080p"})
+			info.OriginModelName = model
 
-	_, handled, err := PrepareTaskV2Billing(c, info)
+			_, handled, err := PrepareTaskV2Billing(c, info)
 
+			assert.True(t, handled)
+			require.EqualError(t, err, "不在模型支持的分辨率范围内")
+			assert.Nil(t, info.TieredBillingSnapshot)
+		})
+	}
+}
+
+func TestPrepareTaskV2BillingAllowsConfiguredResolutionForSeedance25(t *testing.T) {
+	expr := `v2:param("resolution") == "720p" ? tier("720p", charge("per_second", quantity, 0.51)) : tier("__unsupported_resolution__", charge("per_call", quantity, 0))`
+	configureTaskV2BillingTest(t,
+		billingSettingJSON(t, map[string]string{"doubao-seedance-2-5-pro": "tiered_expr"}),
+		billingSettingJSON(t, map[string]string{"doubao-seedance-2-5-pro": expr}),
+	)
+	c, info := newTaskV2BillingContext(relaycommon.TaskSubmitReq{Duration: 5, Resolution: "720p"})
+	info.OriginModelName = "doubao-seedance-2-5-pro"
+
+	priceData, handled, err := PrepareTaskV2Billing(c, info)
+
+	require.NoError(t, err)
 	assert.True(t, handled)
-	require.EqualError(t, err, "不在模型支持的分辨率范围内")
-	assert.Nil(t, info.TieredBillingSnapshot)
+	assert.Equal(t, 1_275_000, priceData.Quota)
+	require.NotNil(t, info.TieredBillingSnapshot)
+	assert.Equal(t, "720p", info.TieredBillingSnapshot.EstimatedTier)
 }
 
 func TestPrepareTaskV2BillingRejectsLegacyFallbackForSeedance2(t *testing.T) {

@@ -100,10 +100,10 @@ func PrepareTaskV2Billing(c *gin.Context, info *relaycommon.RelayInfo) (priceDat
 	if err != nil {
 		return hosttypes.PriceData{}, true, fmt.Errorf("model %s v2 task expression failed: %w", info.OriginModelName, err)
 	}
+	if isUnsupportedResolutionTrace(trace) {
+		return hosttypes.PriceData{}, true, fmt.Errorf("不在模型支持的分辨率范围内")
+	}
 	if isSeedanceV2Model(info.OriginModelName) {
-		if isUnsupportedResolutionTrace(trace) {
-			return hosttypes.PriceData{}, true, fmt.Errorf("不在模型支持的分辨率范围内")
-		}
 		if trace.MatchedTier == "" {
 			return hosttypes.PriceData{}, true, fmt.Errorf("不在模型支持的分辨率范围内")
 		}
