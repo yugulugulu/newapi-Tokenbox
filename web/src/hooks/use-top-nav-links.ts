@@ -95,10 +95,16 @@ export function useTopNavLinks(): TopNavLink[] {
     }
   }
 
-  // About
-  if (modules?.about !== false) {
-    links.push({ title: t('About'), href: '/about' })
-  }
+  links.push({
+    title: t('Image Studio'),
+    href: 'https://image.tokenbox.you/',
+    external: true,
+  })
+  links.push({
+    title: t('Card Store'),
+    href: 'https://jjbone.fun/',
+    external: true,
+  })
 
   return links
 }
