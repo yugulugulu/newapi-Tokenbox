@@ -5442,6 +5442,40 @@
           "pricing": "すべてのモデル料金を見る"
         }
       }
-    }
+    },
+    "Upstream Capture": "上流リクエストのキャプチャ",
+    "Save the request body sent to the upstream and the upstream response body (including streams) for selected channels.": "選択したチャネルについて、上流に送信したリクエストボディと上流からのレスポンスボディ（ストリーミングを含む）を保存します。",
+    "Captured channels": "キャプチャ対象チャネル",
+    "Select channels": "チャネルを選択",
+    "Only traffic on these channels is captured, and only when at least one storage target is enabled.": "これらのチャネルのトラフィックのみがキャプチャされ、少なくとも 1 つの保存先が有効な場合にのみ動作します。",
+    "Select captured channels": "キャプチャ対象チャネルを選択",
+    "Choose channels whose upstream requests and responses are captured": "上流リクエストとレスポンスをキャプチャするチャネルを選択します",
+    "Excluded user IDs": "除外するユーザー ID",
+    "e.g. 1, 2, 3": "例：1, 2, 3",
+    "Requests from these users are never captured. Separate IDs with commas.": "これらのユーザーのリクエストはキャプチャされません。ID はカンマで区切ってください。",
+    "Enter positive integer user IDs separated by commas, e.g. 1, 2, 3": "正の整数のユーザー ID をカンマ区切りで入力してください（例：1, 2, 3）",
+    "Local storage": "ローカル保存",
+    "Write capture records as JSON files on the server disk.": "キャプチャ記録を JSON ファイルとしてサーバーのディスクに書き込みます。",
+    "Enable local storage": "ローカル保存を有効化",
+    "Local directory": "ローカルディレクトリ",
+    "Leave empty to use logs/captures": "空欄の場合は logs/captures を使用",
+    "S3 upload": "S3 アップロード",
+    "Upload capture records to AWS S3 or an S3-compatible object storage.": "キャプチャ記録を AWS S3 または S3 互換のオブジェクトストレージにアップロードします。",
+    "Enable S3 upload": "S3 アップロードを有効化",
+    "Bucket": "バケット",
+    "Region": "リージョン",
+    "Leave empty to use AWS S3": "空欄の場合は AWS S3 を使用",
+    "Set this for S3-compatible storage such as MinIO or R2": "MinIO や R2 などの S3 互換ストレージを使う場合に設定します",
+    "Key prefix": "キーのプレフィックス",
+    "Access Key ID": "Access Key ID",
+    "Secret Access Key": "Secret Access Key",
+    "Enter new secret to update": "更新するには新しいシークレットを入力",
+    "Limits": "制限",
+    "Max body size (MB)": "最大ボディサイズ（MB）",
+    "Request and response bodies are each truncated beyond this size": "リクエストボディとレスポンスボディはそれぞれこのサイズを超えると切り詰められます",
+    "Queue size": "キューサイズ",
+    "Maximum number of capture records waiting to be written": "書き込み待ちのキャプチャ記録の最大数",
+    "Bucket is required when S3 upload is enabled": "S3 アップロードを有効にする場合はバケットが必須です",
+    "Region is required when S3 upload is enabled": "S3 アップロードを有効にする場合はリージョンが必須です"
   }
 }

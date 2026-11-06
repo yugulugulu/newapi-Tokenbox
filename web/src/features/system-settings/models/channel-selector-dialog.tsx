@@ -55,9 +55,12 @@ type ChannelSelectorDialogProps = {
   channels: UpstreamChannel[]
   selectedChannelIds: number[]
   onSelectedChannelIdsChange: (ids: number[]) => void
-  channelEndpoints: Record<number, string>
-  onChannelEndpointsChange: (endpoints: Record<number, string>) => void
+  /** Omit both endpoint props to hide the sync endpoint column. */
+  channelEndpoints?: Record<number, string>
+  onChannelEndpointsChange?: (endpoints: Record<number, string>) => void
   onConfirm: (selectedIds: number[]) => void
+  title?: string
+  description?: string
 }
 
 // Synthesized presets from `controller/ratio_sync.go` always carry stable
@@ -77,6 +80,8 @@ export function ChannelSelectorDialog({
   channelEndpoints,
   onChannelEndpointsChange,
   onConfirm,
+  title,
+  description,
 }: ChannelSelectorDialogProps) {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
@@ -100,9 +105,11 @@ export function ChannelSelectorDialog({
     setRowSelection(newSelection)
   }, [selectedChannelIds, channels])
 
+  const showEndpoint = Boolean(channelEndpoints && onChannelEndpointsChange)
+
   const updateEndpoint = useCallback(
     (channelId: number, endpoint: string) => {
-      onChannelEndpointsChange({
+      onChannelEndpointsChange?.({
         ...channelEndpoints,
         [channelId]: endpoint,
       })
@@ -115,8 +122,8 @@ export function ChannelSelectorDialog({
     return option ? endpoint : 'custom'
   }
 
-  const columns = useMemo<ColumnDef<UpstreamChannel>[]>(
-    () => [
+  const columns = useMemo<ColumnDef<UpstreamChannel>[]>(() => {
+    const allColumns: ColumnDef<UpstreamChannel>[] = [
       {
         id: 'select',
         size: 44,
@@ -222,7 +229,7 @@ export function ChannelSelectorDialog({
         cell: ({ row }) => {
           const channel = row.original
           const currentEndpoint =
-            channelEndpoints[channel.id] || DEFAULT_ENDPOINT
+            channelEndpoints?.[channel.id] || DEFAULT_ENDPOINT
           const endpointType = getEndpointType(currentEndpoint)
 
           const handleTypeChange = (value: string) => {
@@ -268,9 +275,11 @@ export function ChannelSelectorDialog({
           )
         },
       },
-    ],
-    [channelEndpoints, t, updateEndpoint]
-  )
+    ]
+    return showEndpoint
+      ? allColumns
+      : allColumns.filter((column) => column.id !== 'endpoint')
+  }, [channelEndpoints, showEndpoint, t, updateEndpoint])
 
   const filteredChannels = useMemo(() => {
     if (!search.trim()) return channels
@@ -317,10 +326,11 @@ export function ChannelSelectorDialog({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={t('Select Sync Channels')}
-      description={t(
-        'Choose channels to sync upstream ratio configurations from'
-      )}
+      title={title ?? t('Select Sync Channels')}
+      description={
+        description ??
+        t('Choose channels to sync upstream ratio configurations from')
+      }
       contentClassName='flex max-h-[90vh] max-w-[calc(100%-2rem)] flex-col sm:max-w-[90vw] xl:max-w-[1400px]'
       contentHeight='min(72vh, 720px)'
       bodyClassName='flex h-full min-h-0 flex-col overflow-hidden'

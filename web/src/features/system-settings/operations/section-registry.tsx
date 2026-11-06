@@ -20,6 +20,7 @@ import { SystemBehaviorSection } from '../general/system-behavior-section'
 import { EmailSettingsSection } from '../integrations/email-settings-section'
 import { MonitoringSettingsSection } from '../integrations/monitoring-settings-section'
 import { WorkerSettingsSection } from '../integrations/worker-settings-section'
+import { CaptureSection } from '../maintenance/capture-section'
 import { LogSettingsSection } from '../maintenance/log-settings-section'
 import { PerformanceSection } from '../maintenance/performance-section'
 import { UpdateCheckerSection } from '../maintenance/update-checker-section'
@@ -123,6 +124,34 @@ const OPERATIONS_SECTIONS = [
             settings['performance_setting.monitor_memory_threshold'] ?? 90,
           'performance_setting.monitor_disk_threshold':
             settings['performance_setting.monitor_disk_threshold'] ?? 95,
+        }}
+      />
+    ),
+  },
+  {
+    id: 'capture',
+    titleKey: 'Upstream Capture',
+    build: (settings: OperationsSettings) => (
+      <CaptureSection
+        defaultValues={{
+          'capture_setting.channel_ids':
+            settings['capture_setting.channel_ids'],
+          'capture_setting.excluded_user_ids':
+            settings['capture_setting.excluded_user_ids'],
+          'capture_setting.local_enabled':
+            settings['capture_setting.local_enabled'],
+          'capture_setting.local_dir': settings['capture_setting.local_dir'],
+          'capture_setting.s3_enabled': settings['capture_setting.s3_enabled'],
+          'capture_setting.s3_bucket': settings['capture_setting.s3_bucket'],
+          'capture_setting.s3_region': settings['capture_setting.s3_region'],
+          'capture_setting.s3_endpoint':
+            settings['capture_setting.s3_endpoint'],
+          'capture_setting.s3_prefix': settings['capture_setting.s3_prefix'],
+          'capture_setting.s3_access_key_id':
+            settings['capture_setting.s3_access_key_id'],
+          'capture_setting.max_body_mb':
+            settings['capture_setting.max_body_mb'],
+          'capture_setting.queue_size': settings['capture_setting.queue_size'],
         }}
       />
     ),

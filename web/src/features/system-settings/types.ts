@@ -362,6 +362,18 @@ export type OperationsSettings = {
   'perf_metrics_setting.flush_interval': number
   'perf_metrics_setting.bucket_time': 'hour' | 'minute' | '5min'
   'perf_metrics_setting.retention_days': number
+  'capture_setting.channel_ids': number[]
+  'capture_setting.excluded_user_ids': number[]
+  'capture_setting.local_enabled': boolean
+  'capture_setting.local_dir': string
+  'capture_setting.s3_enabled': boolean
+  'capture_setting.s3_bucket': string
+  'capture_setting.s3_region': string
+  'capture_setting.s3_endpoint': string
+  'capture_setting.s3_prefix': string
+  'capture_setting.s3_access_key_id': string
+  'capture_setting.max_body_mb': number
+  'capture_setting.queue_size': number
 }
 
 export type SecuritySettings = {

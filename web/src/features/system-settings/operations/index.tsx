@@ -56,6 +56,18 @@ const defaultOperationsSettings: OperationsSettings = {
   'perf_metrics_setting.flush_interval': 5,
   'perf_metrics_setting.bucket_time': 'hour',
   'perf_metrics_setting.retention_days': 0,
+  'capture_setting.channel_ids': [],
+  'capture_setting.excluded_user_ids': [],
+  'capture_setting.local_enabled': false,
+  'capture_setting.local_dir': '',
+  'capture_setting.s3_enabled': false,
+  'capture_setting.s3_bucket': '',
+  'capture_setting.s3_region': '',
+  'capture_setting.s3_endpoint': '',
+  'capture_setting.s3_prefix': '',
+  'capture_setting.s3_access_key_id': '',
+  'capture_setting.max_body_mb': 32,
+  'capture_setting.queue_size': 1000,
 }
 
 export function OperationsSettings() {

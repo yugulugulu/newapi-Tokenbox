@@ -42,5 +42,7 @@
   "Withdrawal request submitted": "Withdrawal request submitted",
   "Withdrawal Settings": "Withdrawal Settings",
   "Withdrawal successful": "Withdrawal successful",
-  "Withdrawal will be sent to the configured BSC address.": "Withdrawal will be sent to the configured BSC address."
+  "Withdrawal will be sent to the configured BSC address.": "Withdrawal will be sent to the configured BSC address.",
+  "Access Key ID": "Access Key ID",
+  "Secret Access Key": "Secret Access Key"
 }

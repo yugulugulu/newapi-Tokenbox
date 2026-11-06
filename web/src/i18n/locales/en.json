@@ -5442,6 +5442,40 @@
           "pricing": "View all model pricing"
         }
       }
-    }
+    },
+    "Upstream Capture": "Upstream Capture",
+    "Save the request body sent to the upstream and the upstream response body (including streams) for selected channels.": "Save the request body sent to the upstream and the upstream response body (including streams) for selected channels.",
+    "Captured channels": "Captured channels",
+    "Select channels": "Select channels",
+    "Only traffic on these channels is captured, and only when at least one storage target is enabled.": "Only traffic on these channels is captured, and only when at least one storage target is enabled.",
+    "Select captured channels": "Select captured channels",
+    "Choose channels whose upstream requests and responses are captured": "Choose channels whose upstream requests and responses are captured",
+    "Excluded user IDs": "Excluded user IDs",
+    "e.g. 1, 2, 3": "e.g. 1, 2, 3",
+    "Requests from these users are never captured. Separate IDs with commas.": "Requests from these users are never captured. Separate IDs with commas.",
+    "Enter positive integer user IDs separated by commas, e.g. 1, 2, 3": "Enter positive integer user IDs separated by commas, e.g. 1, 2, 3",
+    "Local storage": "Local storage",
+    "Write capture records as JSON files on the server disk.": "Write capture records as JSON files on the server disk.",
+    "Enable local storage": "Enable local storage",
+    "Local directory": "Local directory",
+    "Leave empty to use logs/captures": "Leave empty to use logs/captures",
+    "S3 upload": "S3 upload",
+    "Upload capture records to AWS S3 or an S3-compatible object storage.": "Upload capture records to AWS S3 or an S3-compatible object storage.",
+    "Enable S3 upload": "Enable S3 upload",
+    "Bucket": "Bucket",
+    "Region": "Region",
+    "Leave empty to use AWS S3": "Leave empty to use AWS S3",
+    "Set this for S3-compatible storage such as MinIO or R2": "Set this for S3-compatible storage such as MinIO or R2",
+    "Key prefix": "Key prefix",
+    "Access Key ID": "Access Key ID",
+    "Secret Access Key": "Secret Access Key",
+    "Enter new secret to update": "Enter new secret to update",
+    "Limits": "Limits",
+    "Max body size (MB)": "Max body size (MB)",
+    "Request and response bodies are each truncated beyond this size": "Request and response bodies are each truncated beyond this size",
+    "Queue size": "Queue size",
+    "Maximum number of capture records waiting to be written": "Maximum number of capture records waiting to be written",
+    "Bucket is required when S3 upload is enabled": "Bucket is required when S3 upload is enabled",
+    "Region is required when S3 upload is enabled": "Region is required when S3 upload is enabled"
   }
 }
