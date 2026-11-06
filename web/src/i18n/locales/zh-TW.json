@@ -5442,6 +5442,40 @@
           "pricing": "查看全部模型價格"
         }
       }
-    }
+    },
+    "Upstream Capture": "上游請求抓取",
+    "Save the request body sent to the upstream and the upstream response body (including streams) for selected channels.": "為選定的渠道保存發往上游的請求體與上游回傳的回應體（包含串流回應）。",
+    "Captured channels": "抓取渠道",
+    "Select channels": "選擇渠道",
+    "Only traffic on these channels is captured, and only when at least one storage target is enabled.": "僅抓取這些渠道的流量，且至少啟用一種儲存方式時才會生效。",
+    "Select captured channels": "選擇抓取渠道",
+    "Choose channels whose upstream requests and responses are captured": "選擇需要抓取上游請求與回應的渠道",
+    "Excluded user IDs": "排除的使用者 ID",
+    "e.g. 1, 2, 3": "例如：1, 2, 3",
+    "Requests from these users are never captured. Separate IDs with commas.": "這些使用者的請求不會被抓取。多個 ID 以逗號分隔。",
+    "Enter positive integer user IDs separated by commas, e.g. 1, 2, 3": "請輸入以逗號分隔的正整數使用者 ID，例如 1, 2, 3",
+    "Local storage": "本機儲存",
+    "Write capture records as JSON files on the server disk.": "將抓取紀錄以 JSON 檔案寫入伺服器磁碟。",
+    "Enable local storage": "啟用本機儲存",
+    "Local directory": "本機目錄",
+    "Leave empty to use logs/captures": "留空則使用 logs/captures",
+    "S3 upload": "S3 上傳",
+    "Upload capture records to AWS S3 or an S3-compatible object storage.": "將抓取紀錄上傳至 AWS S3 或相容 S3 的物件儲存。",
+    "Enable S3 upload": "啟用 S3 上傳",
+    "Bucket": "儲存桶",
+    "Region": "區域",
+    "Leave empty to use AWS S3": "留空則使用 AWS S3",
+    "Set this for S3-compatible storage such as MinIO or R2": "使用 MinIO、R2 等相容 S3 的儲存時填寫",
+    "Key prefix": "物件鍵前綴",
+    "Access Key ID": "Access Key ID",
+    "Secret Access Key": "Secret Access Key",
+    "Enter new secret to update": "輸入新密鑰以更新",
+    "Limits": "限制",
+    "Max body size (MB)": "最大內容大小（MB）",
+    "Request and response bodies are each truncated beyond this size": "請求體與回應體分別在超過此大小後截斷",
+    "Queue size": "佇列大小",
+    "Maximum number of capture records waiting to be written": "等待寫入的抓取紀錄最大數量",
+    "Bucket is required when S3 upload is enabled": "啟用 S3 上傳時必須填寫儲存桶",
+    "Region is required when S3 upload is enabled": "啟用 S3 上傳時必須填寫區域"
   }
 }

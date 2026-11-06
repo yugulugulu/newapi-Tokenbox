@@ -5442,6 +5442,40 @@
           "pricing": "Voir tous les tarifs"
         }
       }
-    }
+    },
+    "Upstream Capture": "Capture amont",
+    "Save the request body sent to the upstream and the upstream response body (including streams) for selected channels.": "Enregistre le corps de la requête envoyée à l'amont et le corps de la réponse amont (y compris en streaming) pour les canaux sélectionnés.",
+    "Captured channels": "Canaux capturés",
+    "Select channels": "Sélectionner des canaux",
+    "Only traffic on these channels is captured, and only when at least one storage target is enabled.": "Seul le trafic de ces canaux est capturé, et uniquement si au moins une cible de stockage est activée.",
+    "Select captured channels": "Sélectionner les canaux capturés",
+    "Choose channels whose upstream requests and responses are captured": "Choisissez les canaux dont les requêtes et réponses amont sont capturées",
+    "Excluded user IDs": "ID utilisateurs exclus",
+    "e.g. 1, 2, 3": "ex. 1, 2, 3",
+    "Requests from these users are never captured. Separate IDs with commas.": "Les requêtes de ces utilisateurs ne sont jamais capturées. Séparez les ID par des virgules.",
+    "Enter positive integer user IDs separated by commas, e.g. 1, 2, 3": "Saisissez des ID utilisateurs entiers positifs séparés par des virgules, ex. 1, 2, 3",
+    "Local storage": "Stockage local",
+    "Write capture records as JSON files on the server disk.": "Écrit les enregistrements de capture sous forme de fichiers JSON sur le disque du serveur.",
+    "Enable local storage": "Activer le stockage local",
+    "Local directory": "Répertoire local",
+    "Leave empty to use logs/captures": "Laisser vide pour utiliser logs/captures",
+    "S3 upload": "Envoi vers S3",
+    "Upload capture records to AWS S3 or an S3-compatible object storage.": "Envoie les enregistrements de capture vers AWS S3 ou un stockage objet compatible S3.",
+    "Enable S3 upload": "Activer l'envoi vers S3",
+    "Bucket": "Bucket",
+    "Region": "Région",
+    "Leave empty to use AWS S3": "Laisser vide pour utiliser AWS S3",
+    "Set this for S3-compatible storage such as MinIO or R2": "À renseigner pour un stockage compatible S3 comme MinIO ou R2",
+    "Key prefix": "Préfixe de clé",
+    "Access Key ID": "Access Key ID",
+    "Secret Access Key": "Secret Access Key",
+    "Enter new secret to update": "Saisissez une nouvelle clé secrète pour la mettre à jour",
+    "Limits": "Limites",
+    "Max body size (MB)": "Taille maximale du corps (Mo)",
+    "Request and response bodies are each truncated beyond this size": "Les corps de requête et de réponse sont chacun tronqués au-delà de cette taille",
+    "Queue size": "Taille de la file d'attente",
+    "Maximum number of capture records waiting to be written": "Nombre maximal d'enregistrements de capture en attente d'écriture",
+    "Bucket is required when S3 upload is enabled": "Le bucket est requis lorsque l'envoi vers S3 est activé",
+    "Region is required when S3 upload is enabled": "La région est requise lorsque l'envoi vers S3 est activé"
   }
 }

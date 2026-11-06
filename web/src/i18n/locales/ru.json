@@ -5442,6 +5442,40 @@
           "pricing": "Посмотреть все цены"
         }
       }
-    }
+    },
+    "Upstream Capture": "Захват upstream-запросов",
+    "Save the request body sent to the upstream and the upstream response body (including streams) for selected channels.": "Сохраняет тело запроса, отправленного upstream, и тело ответа upstream (включая потоковые) для выбранных каналов.",
+    "Captured channels": "Захватываемые каналы",
+    "Select channels": "Выбрать каналы",
+    "Only traffic on these channels is captured, and only when at least one storage target is enabled.": "Захватывается только трафик этих каналов и только при включённом хотя бы одном хранилище.",
+    "Select captured channels": "Выбор захватываемых каналов",
+    "Choose channels whose upstream requests and responses are captured": "Выберите каналы, для которых сохраняются запросы и ответы upstream",
+    "Excluded user IDs": "Исключённые ID пользователей",
+    "e.g. 1, 2, 3": "например, 1, 2, 3",
+    "Requests from these users are never captured. Separate IDs with commas.": "Запросы этих пользователей никогда не сохраняются. Разделяйте ID запятыми.",
+    "Enter positive integer user IDs separated by commas, e.g. 1, 2, 3": "Введите положительные целые ID пользователей через запятую, например 1, 2, 3",
+    "Local storage": "Локальное хранилище",
+    "Write capture records as JSON files on the server disk.": "Записывает данные захвата в JSON-файлы на диск сервера.",
+    "Enable local storage": "Включить локальное хранилище",
+    "Local directory": "Локальный каталог",
+    "Leave empty to use logs/captures": "Оставьте пустым, чтобы использовать logs/captures",
+    "S3 upload": "Загрузка в S3",
+    "Upload capture records to AWS S3 or an S3-compatible object storage.": "Загружает данные захвата в AWS S3 или S3-совместимое объектное хранилище.",
+    "Enable S3 upload": "Включить загрузку в S3",
+    "Bucket": "Бакет",
+    "Region": "Регион",
+    "Leave empty to use AWS S3": "Оставьте пустым, чтобы использовать AWS S3",
+    "Set this for S3-compatible storage such as MinIO or R2": "Укажите для S3-совместимых хранилищ, например MinIO или R2",
+    "Key prefix": "Префикс ключа",
+    "Access Key ID": "Access Key ID",
+    "Secret Access Key": "Secret Access Key",
+    "Enter new secret to update": "Введите новый секрет для обновления",
+    "Limits": "Ограничения",
+    "Max body size (MB)": "Макс. размер тела (МБ)",
+    "Request and response bodies are each truncated beyond this size": "Тела запроса и ответа обрезаются по отдельности сверх этого размера",
+    "Queue size": "Размер очереди",
+    "Maximum number of capture records waiting to be written": "Максимальное число записей захвата, ожидающих записи",
+    "Bucket is required when S3 upload is enabled": "При включённой загрузке в S3 необходимо указать бакет",
+    "Region is required when S3 upload is enabled": "При включённой загрузке в S3 необходимо указать регион"
   }
 }

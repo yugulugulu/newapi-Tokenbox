@@ -5442,6 +5442,40 @@
           "pricing": "Xem toàn bộ giá mô hình"
         }
       }
-    }
+    },
+    "Upstream Capture": "Ghi lại yêu cầu upstream",
+    "Save the request body sent to the upstream and the upstream response body (including streams) for selected channels.": "Lưu nội dung yêu cầu gửi tới upstream và nội dung phản hồi từ upstream (bao gồm luồng) cho các kênh đã chọn.",
+    "Captured channels": "Kênh được ghi lại",
+    "Select channels": "Chọn kênh",
+    "Only traffic on these channels is captured, and only when at least one storage target is enabled.": "Chỉ ghi lại lưu lượng của các kênh này và chỉ khi bật ít nhất một nơi lưu trữ.",
+    "Select captured channels": "Chọn kênh được ghi lại",
+    "Choose channels whose upstream requests and responses are captured": "Chọn các kênh cần ghi lại yêu cầu và phản hồi upstream",
+    "Excluded user IDs": "ID người dùng bị loại trừ",
+    "e.g. 1, 2, 3": "vd: 1, 2, 3",
+    "Requests from these users are never captured. Separate IDs with commas.": "Yêu cầu của những người dùng này sẽ không bao giờ bị ghi lại. Phân tách ID bằng dấu phẩy.",
+    "Enter positive integer user IDs separated by commas, e.g. 1, 2, 3": "Nhập ID người dùng là số nguyên dương, phân tách bằng dấu phẩy, vd: 1, 2, 3",
+    "Local storage": "Lưu trữ cục bộ",
+    "Write capture records as JSON files on the server disk.": "Ghi bản ghi dưới dạng tệp JSON trên ổ đĩa máy chủ.",
+    "Enable local storage": "Bật lưu trữ cục bộ",
+    "Local directory": "Thư mục cục bộ",
+    "Leave empty to use logs/captures": "Để trống để dùng logs/captures",
+    "S3 upload": "Tải lên S3",
+    "Upload capture records to AWS S3 or an S3-compatible object storage.": "Tải bản ghi lên AWS S3 hoặc kho lưu trữ đối tượng tương thích S3.",
+    "Enable S3 upload": "Bật tải lên S3",
+    "Bucket": "Bucket",
+    "Region": "Vùng",
+    "Leave empty to use AWS S3": "Để trống để dùng AWS S3",
+    "Set this for S3-compatible storage such as MinIO or R2": "Điền khi dùng kho tương thích S3 như MinIO hoặc R2",
+    "Key prefix": "Tiền tố khóa",
+    "Access Key ID": "Access Key ID",
+    "Secret Access Key": "Secret Access Key",
+    "Enter new secret to update": "Nhập khóa bí mật mới để cập nhật",
+    "Limits": "Giới hạn",
+    "Max body size (MB)": "Kích thước nội dung tối đa (MB)",
+    "Request and response bodies are each truncated beyond this size": "Nội dung yêu cầu và phản hồi sẽ bị cắt riêng khi vượt quá kích thước này",
+    "Queue size": "Kích thước hàng đợi",
+    "Maximum number of capture records waiting to be written": "Số bản ghi tối đa đang chờ ghi",
+    "Bucket is required when S3 upload is enabled": "Cần nhập bucket khi bật tải lên S3",
+    "Region is required when S3 upload is enabled": "Cần nhập vùng khi bật tải lên S3"
   }
 }
