@@ -76,6 +76,11 @@ export function LogStatsBadges(props: {
           value={formatValue(props.stats?.direct_topup_quota)}
           accent='bg-emerald-500/70'
         />
+        <StatBadge
+          label={t('Subscription')}
+          value={formatValue(props.stats?.subscription_topup_quota)}
+          accent='bg-violet-500/70'
+        />
       </div>
     )
   }

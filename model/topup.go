@@ -63,13 +63,13 @@ func (topUp *TopUp) Update() error {
 	return err
 }
 
-func SumTopupQuota(startTimestamp int64, endTimestamp int64, username string) (total int64, redemptionTotal int64, directTotal int64, err error) {
+func SumTopupQuota(startTimestamp int64, endTimestamp int64, username string) (total int64, redemptionTotal int64, directTotal int64, subscriptionTotal int64, err error) {
 	userIds := DB.Unscoped().Model(&User{}).Select("id")
 	if username != "" {
 		if strings.Contains(username, "%") {
 			pattern, patternErr := sanitizeLikePattern(username)
 			if patternErr != nil {
-				return 0, 0, 0, patternErr
+				return 0, 0, 0, 0, patternErr
 			}
 			userIds = userIds.Where("username LIKE ? ESCAPE '!'", pattern)
 		} else {
@@ -98,7 +98,7 @@ func SumTopupQuota(startTimestamp int64, endTimestamp int64, username string) (t
 
 	var topUps []TopUp
 	if err = directQuery.Find(&topUps).Error; err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 	quotaPerUnit := decimal.NewFromFloat(common.QuotaPerUnit)
 	for _, topUp := range topUps {
@@ -116,26 +116,59 @@ func SumTopupQuota(startTimestamp int64, endTimestamp int64, username string) (t
 			quota = common.QuotaFromDecimal(decimal.NewFromInt(topUp.Amount).Mul(quotaPerUnit))
 		}
 		if int64(quota) > math.MaxInt64-directTotal {
-			return 0, 0, 0, errors.New("direct topup quota total overflow")
+			return 0, 0, 0, 0, errors.New("direct topup quota total overflow")
 		}
 		directTotal += int64(quota)
 	}
 
 	var redemptions []Redemption
 	if err = redemptionQuery.Find(&redemptions).Error; err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 	for _, redemption := range redemptions {
 		if int64(redemption.Quota) > math.MaxInt64-redemptionTotal {
-			return 0, 0, 0, errors.New("redemption quota total overflow")
+			return 0, 0, 0, 0, errors.New("redemption quota total overflow")
 		}
 		redemptionTotal += int64(redemption.Quota)
 	}
 	if redemptionTotal > math.MaxInt64-directTotal {
-		return 0, 0, 0, errors.New("topup quota total overflow")
+		return 0, 0, 0, 0, errors.New("topup quota total overflow")
 	}
+
+	// Subscription payments create top_ups rows with amount=0, so they are
+	// counted from successful subscription orders instead. Balance purchases
+	// only move existing wallet quota and are not new recharge income.
+	subscriptionQuery := DB.Model(&SubscriptionOrder{}).
+		Select("money").
+		Where("status = ? AND money > 0", common.TopUpStatusSuccess).
+		Where("payment_provider <> ? AND payment_method <> ?", PaymentProviderBalance, PaymentMethodBalance)
+	if username != "" {
+		subscriptionQuery = subscriptionQuery.Where("user_id IN (?)", userIds)
+	}
+	if startTimestamp != 0 {
+		subscriptionQuery = subscriptionQuery.Where("complete_time >= ?", startTimestamp)
+	}
+	if endTimestamp != 0 {
+		subscriptionQuery = subscriptionQuery.Where("complete_time <= ?", endTimestamp)
+	}
+	var subscriptionOrders []SubscriptionOrder
+	if err = subscriptionQuery.Find(&subscriptionOrders).Error; err != nil {
+		return 0, 0, 0, 0, err
+	}
+	for _, order := range subscriptionOrders {
+		quota := int64(common.QuotaFromDecimal(decimal.NewFromFloat(order.Money).Mul(quotaPerUnit)))
+		if quota > math.MaxInt64-subscriptionTotal {
+			return 0, 0, 0, 0, errors.New("subscription quota total overflow")
+		}
+		subscriptionTotal += quota
+	}
+
 	total = directTotal + redemptionTotal
-	return total, redemptionTotal, directTotal, nil
+	if subscriptionTotal > math.MaxInt64-total {
+		return 0, 0, 0, 0, errors.New("topup quota total overflow")
+	}
+	total += subscriptionTotal
+	return total, redemptionTotal, directTotal, subscriptionTotal, nil
 }
 
 func GetTopUpById(id int) *TopUp {
