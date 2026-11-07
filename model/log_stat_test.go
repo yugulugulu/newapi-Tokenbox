@@ -55,7 +55,7 @@ func TestSumUsedQuotaSeparatesRedemptionAndDirectTopups(t *testing.T) {
 	dsn := fmt.Sprintf("file:log-topup-stat-%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	require.NoError(t, err)
-	require.NoError(t, db.AutoMigrate(&Log{}, &User{}, &TopUp{}, &Redemption{}))
+	require.NoError(t, db.AutoMigrate(&Log{}, &User{}, &TopUp{}, &Redemption{}, &SubscriptionOrder{}))
 
 	previousDB := DB
 	previousLogDB := LOG_DB
@@ -91,6 +91,16 @@ func TestSumUsedQuotaSeparatesRedemptionAndDirectTopups(t *testing.T) {
 		{Key: "00000000000000000000000000000003", Status: common.RedemptionCodeStatusUsed, Quota: int(3 * quotaPerUnit), RedeemedTime: now, UsedUserId: users[1].Id},
 	}
 	require.NoError(t, db.Create(&redemptions).Error)
+	// Subscription payments leave amount=0 top_ups rows ("subscription-order" above),
+	// so they must be counted once from successful externally paid orders.
+	subscriptionOrders := []SubscriptionOrder{
+		{UserId: users[0].Id, PlanId: 1, Money: 20, TradeNo: "subscription-order", PaymentMethod: "wxpay", PaymentProvider: PaymentProviderEpay, Status: common.TopUpStatusSuccess, CompleteTime: now},
+		{UserId: users[0].Id, PlanId: 1, Money: 50, TradeNo: "alice-sub-balance", PaymentMethod: PaymentMethodBalance, PaymentProvider: PaymentProviderBalance, Status: common.TopUpStatusSuccess, CompleteTime: now},
+		{UserId: users[0].Id, PlanId: 1, Money: 70, TradeNo: "alice-sub-pending", PaymentMethod: "wxpay", PaymentProvider: PaymentProviderEpay, Status: common.TopUpStatusPending, CompleteTime: now},
+		{UserId: users[0].Id, PlanId: 1, Money: 90, TradeNo: "alice-sub-old", PaymentMethod: "wxpay", PaymentProvider: PaymentProviderEpay, Status: common.TopUpStatusSuccess, CompleteTime: now - 120},
+		{UserId: users[1].Id, PlanId: 1, Money: 30, TradeNo: "bob-sub", PaymentMethod: "stripe", PaymentProvider: PaymentProviderStripe, Status: common.TopUpStatusSuccess, CompleteTime: now},
+	}
+	require.NoError(t, db.Create(&subscriptionOrders).Error)
 
 	// Old top-up logs had quota=0; statistics must come from durable payment records.
 	require.NoError(t, db.Create(&Log{CreatedAt: now, Type: LogTypeTopup, Username: "alice", Quota: 0}).Error)
@@ -98,9 +108,15 @@ func TestSumUsedQuotaSeparatesRedemptionAndDirectTopups(t *testing.T) {
 	stat, err := SumUsedQuota(LogTypeTopup, now-30, now+30, "", "alice", "", 0, "")
 	require.NoError(t, err)
 
-	assert.Equal(t, 3*quotaPerUnit, stat.TopupQuota)
+	assert.Equal(t, 23*quotaPerUnit, stat.TopupQuota)
 	assert.Equal(t, quotaPerUnit, stat.RedemptionQuota)
 	assert.Equal(t, 2*quotaPerUnit, stat.DirectTopupQuota)
+	assert.Equal(t, 20*quotaPerUnit, stat.SubscriptionTopupQuota)
+
+	allUsers, err := SumUsedQuota(LogTypeTopup, now-30, now+30, "", "", "", 0, "")
+	require.NoError(t, err)
+	assert.Equal(t, 50*quotaPerUnit, allUsers.SubscriptionTopupQuota)
+	assert.Equal(t, 60*quotaPerUnit, allUsers.TopupQuota)
 }
 
 func TestRecordTopupLogStoresQuotaAndSource(t *testing.T) {

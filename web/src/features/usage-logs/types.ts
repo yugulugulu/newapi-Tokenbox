@@ -257,6 +257,7 @@ export interface LogStatistics {
   topup_quota: number
   redemption_quota: number
   direct_topup_quota: number
+  subscription_topup_quota: number
   rpm: number
   tpm: number
 }

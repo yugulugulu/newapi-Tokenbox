@@ -36,6 +36,7 @@ export const DEFAULT_LOG_STATS: LogStatistics = {
   topup_quota: 0,
   redemption_quota: 0,
   direct_topup_quota: 0,
+  subscription_topup_quota: 0,
   rpm: 0,
   tpm: 0,
 }

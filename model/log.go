@@ -617,13 +617,14 @@ func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int
 }
 
 type Stat struct {
-	Quota            int   `json:"quota"`
-	RefundQuota      int   `json:"refund_quota"`
-	TopupQuota       int64 `json:"topup_quota"`
-	RedemptionQuota  int64 `json:"redemption_quota"`
-	DirectTopupQuota int64 `json:"direct_topup_quota"`
-	Rpm              int   `json:"rpm"`
-	Tpm              int   `json:"tpm"`
+	Quota                  int   `json:"quota"`
+	RefundQuota            int   `json:"refund_quota"`
+	TopupQuota             int64 `json:"topup_quota"`
+	RedemptionQuota        int64 `json:"redemption_quota"`
+	DirectTopupQuota       int64 `json:"direct_topup_quota"`
+	SubscriptionTopupQuota int64 `json:"subscription_topup_quota"`
+	Rpm                    int   `json:"rpm"`
+	Tpm                    int   `json:"tpm"`
 }
 
 func applyLogStatFilters(tx *gorm.DB, modelName string, username string, tokenName string, channel int, group string) (*gorm.DB, error) {
@@ -694,7 +695,7 @@ func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelNa
 	if logType == LogTypeTopup {
 		// Recharge records do not carry model, token, channel, or group values.
 		if modelName == "" && tokenName == "" && channel == 0 && group == "" {
-			stat.TopupQuota, stat.RedemptionQuota, stat.DirectTopupQuota, err = SumTopupQuota(startTimestamp, endTimestamp, username)
+			stat.TopupQuota, stat.RedemptionQuota, stat.DirectTopupQuota, stat.SubscriptionTopupQuota, err = SumTopupQuota(startTimestamp, endTimestamp, username)
 			if err != nil {
 				common.SysError("failed to query topup stat: " + err.Error())
 				return stat, errors.New("查询统计数据失败")

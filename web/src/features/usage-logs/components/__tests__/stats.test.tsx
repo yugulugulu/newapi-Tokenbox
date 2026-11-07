@@ -162,14 +162,15 @@ describe('usage log statistics', () => {
     await unmountStats(rendered)
   })
 
-  test('shows total, redemption code, and direct recharge when top-up is selected', async () => {
+  test('shows total, redemption code, direct recharge, and subscription when top-up is selected', async () => {
     const rendered = await renderStats({
       stats: {
         quota: 0,
         refund_quota: 0,
-        topup_quota: 35000,
+        topup_quota: 47000,
         redemption_quota: 10000,
         direct_topup_quota: 25000,
+        subscription_topup_quota: 12000,
         rpm: 0,
         tpm: 0,
       },
@@ -179,7 +180,7 @@ describe('usage log statistics', () => {
 
     assert.equal(
       badgeText(rendered.container, 'Total recharge amount').includes(
-        formatLogQuota(35000)
+        formatLogQuota(47000)
       ),
       true
     )
@@ -193,6 +194,12 @@ describe('usage log statistics', () => {
       badgeText(rendered.container, 'Recharge').includes(formatLogQuota(25000)),
       true
     )
+    assert.equal(
+      badgeText(rendered.container, 'Subscription').includes(
+        formatLogQuota(12000)
+      ),
+      true
+    )
     assert.equal(rendered.container.textContent?.includes('Usage'), false)
 
     await unmountStats(rendered)
@@ -201,9 +208,10 @@ describe('usage log statistics', () => {
   test('masks all recharge totals when sensitive values are hidden', async () => {
     const rendered = await renderStats({
       stats: {
-        topup_quota: 35000,
+        topup_quota: 47000,
         redemption_quota: 10000,
         direct_topup_quota: 25000,
+        subscription_topup_quota: 12000,
       },
       sensitiveVisible: false,
       showTopupStats: true,
@@ -219,6 +227,10 @@ describe('usage log statistics', () => {
     )
     assert.equal(
       badgeText(rendered.container, 'Recharge').includes('••••'),
+      true
+    )
+    assert.equal(
+      badgeText(rendered.container, 'Subscription').includes('••••'),
       true
     )
 
