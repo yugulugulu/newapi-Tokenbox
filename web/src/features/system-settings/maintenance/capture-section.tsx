@@ -51,6 +51,7 @@ import { useUpdateOption } from '../hooks/use-update-option'
 import { ChannelSelectorDialog } from '../models/channel-selector-dialog'
 import type { UpstreamChannel } from '../types'
 import { safeNumberFieldProps } from '../utils/numeric-field'
+import { CaptureLocalData } from './capture-local-data'
 
 // Mirrors the bounds enforced by capture_setting.ValidateOption on the server.
 const MAX_BODY_MB_LIMIT = 1024
@@ -82,45 +83,26 @@ function parseUserIdList(raw: string): number[] | null {
  * approach as performance-section.tsx).
  */
 const captureSchema = z.object({
-  capture_setting: z
-    .object({
-      channel_ids: z.array(z.number().int().positive()),
-      only_qualified: z.boolean(),
-      excluded_user_ids: z
-        .string()
-        .refine((value) => parseUserIdList(value) !== null, {
-          message:
-            'Enter positive integer user IDs separated by commas, e.g. 1, 2, 3',
-        }),
-      local_enabled: z.boolean(),
-      local_dir: z.string(),
-      s3_enabled: z.boolean(),
-      s3_bucket: z.string(),
-      s3_region: z.string(),
-      s3_endpoint: z.string(),
-      s3_prefix: z.string(),
-      s3_access_key_id: z.string(),
-      s3_secret: z.string(),
-      max_body_mb: z.coerce.number().int().min(1).max(MAX_BODY_MB_LIMIT),
-      queue_size: z.coerce.number().int().min(1).max(QUEUE_SIZE_LIMIT),
-    })
-    .superRefine((values, ctx) => {
-      if (!values.s3_enabled) return
-      if (!values.s3_bucket.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['s3_bucket'],
-          message: 'Bucket is required when S3 upload is enabled',
-        })
-      }
-      if (!values.s3_region.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['s3_region'],
-          message: 'Region is required when S3 upload is enabled',
-        })
-      }
-    }),
+  capture_setting: z.object({
+    channel_ids: z.array(z.number().int().positive()),
+    only_qualified: z.boolean(),
+    excluded_user_ids: z
+      .string()
+      .refine((value) => parseUserIdList(value) !== null, {
+        message:
+          'Enter positive integer user IDs separated by commas, e.g. 1, 2, 3',
+      }),
+    local_enabled: z.boolean(),
+    local_dir: z.string(),
+    s3_bucket: z.string(),
+    s3_region: z.string(),
+    s3_endpoint: z.string(),
+    s3_prefix: z.string(),
+    s3_access_key_id: z.string(),
+    s3_secret: z.string(),
+    max_body_mb: z.coerce.number().int().min(1).max(MAX_BODY_MB_LIMIT),
+    queue_size: z.coerce.number().int().min(1).max(QUEUE_SIZE_LIMIT),
+  }),
 })
 
 type CaptureFormInput = z.input<typeof captureSchema>
@@ -133,7 +115,6 @@ type FlatCaptureDefaults = {
   'capture_setting.only_qualified': boolean
   'capture_setting.local_enabled': boolean
   'capture_setting.local_dir': string
-  'capture_setting.s3_enabled': boolean
   'capture_setting.s3_bucket': string
   'capture_setting.s3_region': string
   'capture_setting.s3_endpoint': string
@@ -154,7 +135,6 @@ const buildFormDefaults = (
     only_qualified: defaults['capture_setting.only_qualified'] ?? true,
     local_enabled: defaults['capture_setting.local_enabled'],
     local_dir: defaults['capture_setting.local_dir'] ?? '',
-    s3_enabled: defaults['capture_setting.s3_enabled'],
     s3_bucket: defaults['capture_setting.s3_bucket'] ?? '',
     s3_region: defaults['capture_setting.s3_region'] ?? '',
     s3_endpoint: defaults['capture_setting.s3_endpoint'] ?? '',
@@ -177,7 +157,6 @@ const normalizeFormValues = (
     'capture_setting.only_qualified': v.only_qualified,
     'capture_setting.local_enabled': v.local_enabled,
     'capture_setting.local_dir': v.local_dir.trim(),
-    'capture_setting.s3_enabled': v.s3_enabled,
     'capture_setting.s3_bucket': v.s3_bucket.trim(),
     'capture_setting.s3_region': v.s3_region.trim(),
     'capture_setting.s3_endpoint': v.s3_endpoint.trim(),
@@ -298,7 +277,6 @@ export function CaptureSection(props: Props) {
   }
 
   const localEnabled = form.watch('capture_setting.local_enabled')
-  const s3Enabled = form.watch('capture_setting.s3_enabled')
 
   return (
     <SettingsSection title={t('Upstream Capture')}>
@@ -347,7 +325,7 @@ export function CaptureSection(props: Props) {
                 </div>
                 <FormDescription>
                   {t(
-                    'Only traffic on these channels is captured, and only when at least one storage target is enabled.'
+                    'Only traffic on these channels is captured, and only while local storage is enabled.'
                   )}
                 </FormDescription>
                 <FormMessage />
@@ -414,7 +392,9 @@ export function CaptureSection(props: Props) {
           <div>
             <h4 className='font-medium'>{t('Local storage')}</h4>
             <p className='text-muted-foreground mt-1 text-xs'>
-              {t('Write capture records as JSON files on the server disk.')}
+              {t(
+                'Capture records accumulate as JSON files on the server disk. This is the master switch for capturing.'
+              )}
             </p>
           </div>
 
@@ -458,31 +438,13 @@ export function CaptureSection(props: Props) {
           <Separator />
 
           <div>
-            <h4 className='font-medium'>{t('S3 upload')}</h4>
+            <h4 className='font-medium'>{t('S3 manual upload')}</h4>
             <p className='text-muted-foreground mt-1 text-xs'>
               {t(
-                'Upload capture records to AWS S3 or an S3-compatible object storage.'
+                'Packages are uploaded to AWS S3 or an S3-compatible object storage only when you start an upload below.'
               )}
             </p>
           </div>
-
-          <FormField
-            control={form.control}
-            name='capture_setting.s3_enabled'
-            render={({ field }) => (
-              <SettingsSwitchItem className='max-w-md'>
-                <SettingsSwitchContent>
-                  <FormLabel>{t('Enable S3 upload')}</FormLabel>
-                </SettingsSwitchContent>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </SettingsSwitchItem>
-            )}
-          />
 
           <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
             <FormField
@@ -492,7 +454,7 @@ export function CaptureSection(props: Props) {
                 <FormItem>
                   <FormLabel>{t('Bucket')}</FormLabel>
                   <FormControl>
-                    <Input {...field} disabled={!s3Enabled} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -505,11 +467,7 @@ export function CaptureSection(props: Props) {
                 <FormItem>
                   <FormLabel>{t('Region')}</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder='us-east-1'
-                      {...field}
-                      disabled={!s3Enabled}
-                    />
+                    <Input placeholder='us-east-1' {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -525,7 +483,6 @@ export function CaptureSection(props: Props) {
                     <Input
                       placeholder={t('Leave empty to use AWS S3')}
                       {...field}
-                      disabled={!s3Enabled}
                     />
                   </FormControl>
                   <FormDescription>
@@ -544,11 +501,7 @@ export function CaptureSection(props: Props) {
                 <FormItem>
                   <FormLabel>{t('Key prefix')}</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder='captures/'
-                      {...field}
-                      disabled={!s3Enabled}
-                    />
+                    <Input placeholder='captures/' {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -561,11 +514,7 @@ export function CaptureSection(props: Props) {
                 <FormItem>
                   <FormLabel>{t('Access Key ID')}</FormLabel>
                   <FormControl>
-                    <Input
-                      autoComplete='off'
-                      {...field}
-                      disabled={!s3Enabled}
-                    />
+                    <Input autoComplete='off' {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -583,7 +532,6 @@ export function CaptureSection(props: Props) {
                       type='password'
                       placeholder={t('Enter new secret to update')}
                       {...field}
-                      disabled={!s3Enabled}
                     />
                   </FormControl>
                   <FormDescription>
@@ -653,6 +601,8 @@ export function CaptureSection(props: Props) {
           </div>
         </SettingsForm>
       </Form>
+      <Separator className='my-6' />
+      <CaptureLocalData />
     </SettingsSection>
   )
 }

@@ -20,13 +20,16 @@ type builtRecord struct {
 	newAPIRequestId string
 	channelId       int
 	startedAt       time.Time
-	body            []byte
+	// model is the directory-safe upstream model name the record is grouped under.
+	model string
+	body  []byte
 	// qualified reports whether the record passes downstream acceptance.
 	qualified bool
 }
 
 // requestHints are the request JSON fields used to derive record metadata.
 type requestHints struct {
+	Model           string `json:"model"`
 	PromptCacheKey  string `json:"prompt_cache_key"`
 	ReasoningEffort string `json:"reasoning_effort"`
 	Reasoning       *struct {
@@ -131,6 +134,7 @@ func buildRecord(j *job) *builtRecord {
 		newAPIRequestId: s.newAPIRequestId,
 		channelId:       s.channelId,
 		startedAt:       s.startedAt,
+		model:           modelDirName(hints.Model),
 		body:            buf.Bytes(),
 		qualified:       isQualifiedRecord(hints.hasConversation(), j.statusCode, requestTruncated || responseTruncated, responseData),
 	}

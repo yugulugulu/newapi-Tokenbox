@@ -94,6 +94,92 @@ export type LogCleanupTask = SystemTask<
   LogCleanupTaskResult
 >
 
+export type CaptureTaskState = {
+  processed: number
+  total: number
+  progress: number
+}
+
+export type CapturePackResult = {
+  packages: number
+  records: number
+}
+
+export type CaptureUploadResult = {
+  succeeded: number
+  failed: number
+  bytes: number
+}
+
+export type CapturePackTask = SystemTask<
+  null,
+  CaptureTaskState,
+  CapturePackResult
+>
+
+export type CaptureUploadTask = SystemTask<
+  null,
+  CaptureTaskState,
+  CaptureUploadResult
+>
+
+export type CaptureLocalStatsItem = {
+  day: string
+  model: string
+  raw_files: number
+  raw_bytes: number
+  package_files: number
+  package_bytes: number
+  packaged: boolean
+  uploaded: boolean
+  uploaded_at: number
+}
+
+export type CaptureLocalStats = {
+  root: string
+  total_bytes: number
+  raw_files: number
+  raw_bytes: number
+  package_count: number
+  package_bytes: number
+  uploaded_count: number
+  uploaded_bytes: number
+  pending_upload_bytes: number
+  legacy_files: number
+  legacy_bytes: number
+  items: CaptureLocalStatsItem[]
+}
+
+export type CaptureUploadRecord = {
+  id: number
+  task_id: string
+  capture_date: string
+  model_name: string
+  s3_bucket: string
+  s3_key: string
+  file_count: number
+  zip_size: number
+  zip_mtime: number
+  status: 'success' | 'failed'
+  error: string
+  started_at: number
+  finished_at: number
+  duration_ms: number
+}
+
+export type CaptureUploadPage = {
+  page: number
+  page_size: number
+  total: number
+  items: CaptureUploadRecord[]
+}
+
+export type ApiResponse<T> = {
+  success: boolean
+  message: string
+  data?: T
+}
+
 export type SystemTaskResponse<TTask = SystemTask | null> = {
   success: boolean
   message: string
@@ -367,7 +453,6 @@ export type OperationsSettings = {
   'capture_setting.only_qualified': boolean
   'capture_setting.local_enabled': boolean
   'capture_setting.local_dir': string
-  'capture_setting.s3_enabled': boolean
   'capture_setting.s3_bucket': string
   'capture_setting.s3_region': string
   'capture_setting.s3_endpoint': string

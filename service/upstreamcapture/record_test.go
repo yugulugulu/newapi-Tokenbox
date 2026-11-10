@@ -124,9 +124,3 @@ func TestBuildRecordNonJSONAndTruncatedBodies(t *testing.T) {
 	assert.Equal(t, 502, parsed.Response.StatusCode)
 	assert.True(t, parsed.Truncated)
 }
-
-func TestS3ObjectKey(t *testing.T) {
-	rec := &builtRecord{requestId: "abc", channelId: 2, startedAt: time.Date(2026, 11, 6, 1, 0, 0, 0, time.UTC)}
-	assert.Equal(t, "2026-11-06/channel_2/abc.json", s3ObjectKey("", rec))
-	assert.Equal(t, "captures/2026-11-06/channel_2/abc.json", s3ObjectKey("/captures/", rec))
-}

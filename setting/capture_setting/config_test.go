@@ -16,7 +16,6 @@ func TestShouldCapture(t *testing.T) {
 	tests := []struct {
 		name      string
 		local     bool
-		s3        bool
 		channels  []int
 		excluded  []int
 		channelId int
@@ -24,16 +23,14 @@ func TestShouldCapture(t *testing.T) {
 		want      bool
 	}{
 		{name: "selected channel, local only", local: true, channels: []int{1, 2}, channelId: 1, userId: 10, want: true},
-		{name: "selected channel, s3 only", s3: true, channels: []int{1, 2}, channelId: 2, userId: 10, want: true},
-		{name: "unselected channel", local: true, s3: true, channels: []int{1, 2}, channelId: 3, userId: 10, want: false},
+		{name: "unselected channel", local: true, channels: []int{1, 2}, channelId: 3, userId: 10, want: false},
 		{name: "excluded user on selected channel", local: true, channels: []int{1}, excluded: []int{10}, channelId: 1, userId: 10, want: false},
 		{name: "other user not excluded", local: true, channels: []int{1}, excluded: []int{10}, channelId: 1, userId: 11, want: true},
-		{name: "both sinks disabled", channels: []int{1}, channelId: 1, userId: 10, want: false},
+		{name: "local storage disabled", channels: []int{1}, channelId: 1, userId: 10, want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			captureSetting.LocalEnabled = tt.local
-			captureSetting.S3Enabled = tt.s3
 			captureSetting.ChannelIds = tt.channels
 			captureSetting.ExcludedUserIds = tt.excluded
 			RebuildFilter()

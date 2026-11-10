@@ -82,13 +82,12 @@ func TestPersistOnlyQualifiedRecords(t *testing.T) {
 		localDir := t.TempDir()
 		setting.LocalEnabled = true
 		setting.LocalDir = localDir
-		setting.S3Enabled = false
 		setting.OnlyQualified = onlyQualified
 
 		persist(newTestJob(false, conversationRequest, qualified, "application/json", 200, 1<<20))
 		persist(newTestJob(false, conversationRequest, unqualified, "application/json", 200, 1<<20))
 
-		files, err := filepath.Glob(filepath.Join(localDir, "*", "*", "*.json"))
+		files, err := filepath.Glob(filepath.Join(localDir, rawDirName, "*", "*", "*.json"))
 		require.NoError(t, err)
 		if onlyQualified {
 			require.Len(t, files, 1)
