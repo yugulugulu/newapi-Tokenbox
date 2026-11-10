@@ -5508,6 +5508,9 @@
     "Upload failed": "Échec de l'envoi",
     "Uploaded {{succeeded}} packages ({{size}}), {{failed}} failed": "{{succeeded}} archives envoyées ({{size}}), {{failed}} échecs",
     "Local capture data deleted": "Données de capture locales supprimées",
-    "Failed to delete local capture data": "Échec de la suppression des données de capture locales"
+    "Failed to delete local capture data": "Échec de la suppression des données de capture locales",
+    "All dates": "Toutes les dates",
+    "No records for the selected date": "Aucun enregistrement pour la date sélectionnée",
+    "{{records}} records": "{{records}} enregistrements"
   }
 }

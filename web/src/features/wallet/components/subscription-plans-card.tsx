@@ -561,7 +561,7 @@ export function SubscriptionPlansCard({
                           {plan.title || t('Subscription Plans')}
                         </h4>
                         {plan.subtitle && (
-                          <p className='text-muted-foreground truncate text-xs'>
+                          <p className='text-muted-foreground mt-0.5 text-xs break-words whitespace-pre-line'>
                             {plan.subtitle}
                           </p>
                         )}

@@ -90,7 +90,7 @@ func TestUploadPendingRecordsEveryAttempt(t *testing.T) {
 	assert.Equal(t, zipBytes, fake.objects["/bucket/cap/2026-11-05/gpt-6-sol.zip"])
 	fake.mu.Unlock()
 
-	records, total, err := model.ListCaptureUploadRecords(0, 10)
+	records, total, err := model.ListCaptureUploadRecords("", 0, 10)
 	require.NoError(t, err)
 	require.Equal(t, int64(2), total)
 	byModel := map[string]*model.CaptureUploadRecord{}
@@ -108,6 +108,13 @@ func TestUploadPendingRecordsEveryAttempt(t *testing.T) {
 	require.NotNil(t, failed)
 	assert.Equal(t, model.CaptureUploadStatusFailed, failed.Status)
 	assert.Contains(t, failed.Error, "AccessDenied")
+
+	_, dayTotal, err := model.ListCaptureUploadRecords("2026-11-05", 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), dayTotal)
+	_, otherDayTotal, err := model.ListCaptureUploadRecords("2026-11-06", 0, 10)
+	require.NoError(t, err)
+	assert.Zero(t, otherDayTotal)
 
 	// The next run retries only the package that has no successful upload.
 	fake.mu.Lock()

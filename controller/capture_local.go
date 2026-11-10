@@ -111,8 +111,15 @@ func DeleteCaptureLocalData(c *gin.Context) {
 }
 
 func ListCaptureUploads(c *gin.Context) {
+	captureDate := c.Query("date")
+	if captureDate != "" {
+		if _, err := time.Parse("2006-01-02", captureDate); err != nil {
+			common.ApiErrorMsg(c, "date must be in YYYY-MM-DD format")
+			return
+		}
+	}
 	pageInfo := common.GetPageQuery(c)
-	records, total, err := model.ListCaptureUploadRecords(pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	records, total, err := model.ListCaptureUploadRecords(captureDate, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
 	if err != nil {
 		common.ApiError(c, err)
 		return

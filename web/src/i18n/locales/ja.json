@@ -5508,6 +5508,9 @@
     "Upload failed": "アップロードに失敗しました",
     "Uploaded {{succeeded}} packages ({{size}}), {{failed}} failed": "{{succeeded}} 個のパッケージをアップロードしました（{{size}}）、失敗 {{failed}} 個",
     "Local capture data deleted": "ローカルキャプチャデータを削除しました",
-    "Failed to delete local capture data": "ローカルキャプチャデータの削除に失敗しました"
+    "Failed to delete local capture data": "ローカルキャプチャデータの削除に失敗しました",
+    "All dates": "すべての日付",
+    "No records for the selected date": "選択した日付の記録はありません",
+    "{{records}} records": "全 {{records}} 件"
   }
 }

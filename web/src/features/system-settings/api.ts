@@ -146,10 +146,14 @@ export async function deleteCaptureLocalData() {
   return res.data
 }
 
-export async function getCaptureUploads(page: number, pageSize: number) {
+export async function getCaptureUploads(
+  page: number,
+  pageSize: number,
+  date?: string
+) {
   const res = await api.get<ApiResponse<CaptureUploadPage>>(
     '/api/capture/uploads',
-    { params: { p: page, page_size: pageSize } }
+    { params: { p: page, page_size: pageSize, date: date || undefined } }
   )
   return res.data
 }
