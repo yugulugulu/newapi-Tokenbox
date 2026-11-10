@@ -5511,6 +5511,8 @@
     "Failed to delete local capture data": "Échec de la suppression des données de capture locales",
     "All dates": "Toutes les dates",
     "No records for the selected date": "Aucun enregistrement pour la date sélectionnée",
-    "{{records}} records": "{{records}} enregistrements"
+    "{{records}} records": "{{records}} enregistrements",
+    "Do not show again today": "Ne plus afficher aujourd'hui",
+    "Got it": "J'ai compris"
   }
 }

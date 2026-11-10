@@ -5511,6 +5511,8 @@
     "Failed to delete local capture data": "Failed to delete local capture data",
     "All dates": "All dates",
     "No records for the selected date": "No records for the selected date",
-    "{{records}} records": "{{records}} records"
+    "{{records}} records": "{{records}} records",
+    "Do not show again today": "Do not show again today",
+    "Got it": "Got it"
   }
 }

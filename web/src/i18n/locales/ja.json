@@ -5511,6 +5511,8 @@
     "Failed to delete local capture data": "ローカルキャプチャデータの削除に失敗しました",
     "All dates": "すべての日付",
     "No records for the selected date": "選択した日付の記録はありません",
-    "{{records}} records": "全 {{records}} 件"
+    "{{records}} records": "全 {{records}} 件",
+    "Do not show again today": "今日は表示しない",
+    "Got it": "了解しました"
   }
 }
