@@ -5508,6 +5508,11 @@
     "Upload failed": "Upload failed",
     "Uploaded {{succeeded}} packages ({{size}}), {{failed}} failed": "Uploaded {{succeeded}} packages ({{size}}), {{failed}} failed",
     "Local capture data deleted": "Local capture data deleted",
-    "Failed to delete local capture data": "Failed to delete local capture data"
+    "Failed to delete local capture data": "Failed to delete local capture data",
+    "All dates": "All dates",
+    "No records for the selected date": "No records for the selected date",
+    "{{records}} records": "{{records}} records",
+    "Do not show again today": "Do not show again today",
+    "Got it": "Got it"
   }
 }

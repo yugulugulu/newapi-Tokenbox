@@ -5508,6 +5508,11 @@
     "Upload failed": "Tải lên thất bại",
     "Uploaded {{succeeded}} packages ({{size}}), {{failed}} failed": "Đã tải lên {{succeeded}} gói ({{size}}), {{failed}} gói thất bại",
     "Local capture data deleted": "Đã xóa dữ liệu ghi lại cục bộ",
-    "Failed to delete local capture data": "Xóa dữ liệu ghi lại cục bộ thất bại"
+    "Failed to delete local capture data": "Xóa dữ liệu ghi lại cục bộ thất bại",
+    "All dates": "Tất cả ngày",
+    "No records for the selected date": "Không có bản ghi cho ngày đã chọn",
+    "{{records}} records": "{{records}} bản ghi",
+    "Do not show again today": "Không hiển thị lại hôm nay",
+    "Got it": "Đã hiểu"
   }
 }

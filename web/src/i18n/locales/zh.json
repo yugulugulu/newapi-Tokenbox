@@ -5508,6 +5508,11 @@
     "Upload failed": "上传失败",
     "Uploaded {{succeeded}} packages ({{size}}), {{failed}} failed": "已上传 {{succeeded}} 个压缩包（{{size}}），失败 {{failed}} 个",
     "Local capture data deleted": "本地抓取数据已删除",
-    "Failed to delete local capture data": "删除本地抓取数据失败"
+    "Failed to delete local capture data": "删除本地抓取数据失败",
+    "All dates": "全部日期",
+    "No records for the selected date": "所选日期没有记录",
+    "{{records}} records": "共 {{records}} 条",
+    "Do not show again today": "今日不再提示",
+    "Got it": "我知道了"
   }
 }

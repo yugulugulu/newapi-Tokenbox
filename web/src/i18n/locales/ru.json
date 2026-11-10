@@ -5508,6 +5508,11 @@
     "Upload failed": "Ошибка загрузки",
     "Uploaded {{succeeded}} packages ({{size}}), {{failed}} failed": "Загружено архивов: {{succeeded}} ({{size}}), ошибок: {{failed}}",
     "Local capture data deleted": "Локальные данные захвата удалены",
-    "Failed to delete local capture data": "Не удалось удалить локальные данные захвата"
+    "Failed to delete local capture data": "Не удалось удалить локальные данные захвата",
+    "All dates": "Все даты",
+    "No records for the selected date": "Нет записей за выбранную дату",
+    "{{records}} records": "Записей: {{records}}",
+    "Do not show again today": "Больше не показывать сегодня",
+    "Got it": "Понятно"
   }
 }

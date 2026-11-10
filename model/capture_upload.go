@@ -34,14 +34,19 @@ func CreateCaptureUploadRecord(record *CaptureUploadRecord) error {
 	return DB.Create(record).Error
 }
 
-// ListCaptureUploadRecords returns upload attempts, newest first.
-func ListCaptureUploadRecords(offset int, limit int) ([]*CaptureUploadRecord, int64, error) {
+// ListCaptureUploadRecords returns upload attempts, newest first. A non-empty
+// captureDate ("2006-01-02") limits the result to packages of that day.
+func ListCaptureUploadRecords(captureDate string, offset int, limit int) ([]*CaptureUploadRecord, int64, error) {
+	query := DB.Model(&CaptureUploadRecord{})
+	if captureDate != "" {
+		query = query.Where("capture_date = ?", captureDate)
+	}
 	var total int64
-	if err := DB.Model(&CaptureUploadRecord{}).Count(&total).Error; err != nil {
+	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	var records []*CaptureUploadRecord
-	err := DB.Order("id desc").Offset(offset).Limit(limit).Find(&records).Error
+	err := query.Order("id desc").Offset(offset).Limit(limit).Find(&records).Error
 	return records, total, err
 }
 

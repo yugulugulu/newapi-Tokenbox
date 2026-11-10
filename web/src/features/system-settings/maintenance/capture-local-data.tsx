@@ -21,6 +21,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { DatePicker } from '@/components/date-picker'
 import { StatusBadge } from '@/components/status-badge'
 import {
   AlertDialog,
@@ -43,6 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import dayjs from '@/lib/dayjs'
 import { formatTimestampToDate } from '@/lib/format'
 
 import {
@@ -64,7 +66,7 @@ import type {
 
 const STATS_REFRESH_MS = 10_000
 const TASK_REFRESH_MS = 2_000
-const UPLOAD_PAGE_SIZE = 10
+const PAGE_SIZE = 10
 
 type CaptureTaskType = 'capture_pack' | 'capture_upload'
 type CaptureTask = SystemTask<
@@ -145,6 +147,77 @@ function useCaptureTask(
   return { task, running: starting || isActiveTask(task), run }
 }
 
+function toCaptureDay(date: Date | undefined) {
+  return date ? dayjs(date).format('YYYY-MM-DD') : undefined
+}
+
+/** Calendar filter for a capture day, with a button to show every day again. */
+function CaptureDateFilter(props: {
+  value: Date | undefined
+  onChange: (date: Date | undefined) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <div className='flex items-center gap-2'>
+      <DatePicker
+        selected={props.value}
+        onSelect={props.onChange}
+        placeholder={t('All dates')}
+      />
+      {props.value ? (
+        <Button
+          type='button'
+          size='sm'
+          variant='ghost'
+          onClick={() => props.onChange(undefined)}
+        >
+          {t('Clear')}
+        </Button>
+      ) : null}
+    </div>
+  )
+}
+
+/** Previous/next pager shared by the capture tables. */
+function CapturePager(props: {
+  page: number
+  total: number
+  onPageChange: (page: number) => void
+}) {
+  const { t } = useTranslation()
+  const pageCount = Math.max(1, Math.ceil(props.total / PAGE_SIZE))
+  if (props.total === 0) return null
+  return (
+    <div className='flex items-center justify-end gap-2'>
+      <span className='text-muted-foreground text-xs tabular-nums'>
+        {t('{{records}} records', { records: props.total })} ·{' '}
+        {t('Page {{current}} of {{total}}', {
+          current: props.page,
+          total: pageCount,
+        })}
+      </span>
+      <Button
+        type='button'
+        size='sm'
+        variant='outline'
+        disabled={props.page <= 1}
+        onClick={() => props.onPageChange(props.page - 1)}
+      >
+        {t('Previous page')}
+      </Button>
+      <Button
+        type='button'
+        size='sm'
+        variant='outline'
+        disabled={props.page >= pageCount}
+        onClick={() => props.onPageChange(props.page + 1)}
+      >
+        {t('Next page')}
+      </Button>
+    </div>
+  )
+}
+
 function itemStatus(item: CaptureLocalStatsItem) {
   if (item.raw_files > 0 && !item.packaged) return 'unpacked'
   if (item.uploaded && item.raw_files === 0) return 'uploaded'
@@ -155,6 +228,9 @@ function itemStatus(item: CaptureLocalStatsItem) {
 export function CaptureLocalData() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const [itemsDate, setItemsDate] = useState<Date>()
+  const [itemsPage, setItemsPage] = useState(1)
+  const [uploadsDate, setUploadsDate] = useState<Date>()
   const [uploadPage, setUploadPage] = useState(1)
   const [deleting, setDeleting] = useState(false)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
@@ -167,13 +243,26 @@ export function CaptureLocalData() {
   const stats = statsQuery.data?.data
 
   const uploadsQuery = useQuery({
-    queryKey: ['capture-uploads', uploadPage],
-    queryFn: () => getCaptureUploads(uploadPage, UPLOAD_PAGE_SIZE),
+    queryKey: ['capture-uploads', uploadPage, toCaptureDay(uploadsDate)],
+    queryFn: () =>
+      getCaptureUploads(uploadPage, PAGE_SIZE, toCaptureDay(uploadsDate)),
   })
   const uploads = uploadsQuery.data?.data
-  const uploadPageCount = Math.max(
+
+  // The stats endpoint returns every day/model row, so this table filters and
+  // pages on the client; the page is clamped when rows disappear (e.g. delete).
+  const itemsDay = toCaptureDay(itemsDate)
+  const filteredItems = (stats?.items ?? []).filter(
+    (item) => !itemsDay || item.day === itemsDay
+  )
+  const itemsPageCount = Math.max(
     1,
-    Math.ceil((uploads?.total ?? 0) / UPLOAD_PAGE_SIZE)
+    Math.ceil(filteredItems.length / PAGE_SIZE)
+  )
+  const currentItemsPage = Math.min(itemsPage, itemsPageCount)
+  const pagedItems = filteredItems.slice(
+    (currentItemsPage - 1) * PAGE_SIZE,
+    currentItemsPage * PAGE_SIZE
   )
 
   const refreshAll = () => {
@@ -365,6 +454,13 @@ export function CaptureLocalData() {
         </div>
       ) : null}
 
+      <CaptureDateFilter
+        value={itemsDate}
+        onChange={(date) => {
+          setItemsDate(date)
+          setItemsPage(1)
+        }}
+      />
       <Table>
         <TableHeader>
           <TableRow>
@@ -376,17 +472,19 @@ export function CaptureLocalData() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {(stats?.items ?? []).length === 0 ? (
+          {pagedItems.length === 0 ? (
             <TableRow>
               <TableCell
                 colSpan={5}
                 className='text-muted-foreground text-center'
               >
-                {t('No local capture data')}
+                {itemsDay
+                  ? t('No records for the selected date')
+                  : t('No local capture data')}
               </TableCell>
             </TableRow>
           ) : (
-            stats?.items.map((item) => {
+            pagedItems.map((item) => {
               const status = itemStatus(item)
               return (
                 <TableRow key={`${item.day}/${item.model}`}>
@@ -418,10 +516,22 @@ export function CaptureLocalData() {
           )}
         </TableBody>
       </Table>
+      <CapturePager
+        page={currentItemsPage}
+        total={filteredItems.length}
+        onPageChange={setItemsPage}
+      />
 
       <div>
         <h4 className='font-medium'>{t('Upload records')}</h4>
       </div>
+      <CaptureDateFilter
+        value={uploadsDate}
+        onChange={(date) => {
+          setUploadsDate(date)
+          setUploadPage(1)
+        }}
+      />
       <Table>
         <TableHeader>
           <TableRow>
@@ -441,7 +551,9 @@ export function CaptureLocalData() {
                 colSpan={7}
                 className='text-muted-foreground text-center'
               >
-                {t('No uploads yet')}
+                {uploadsDate
+                  ? t('No records for the selected date')
+                  : t('No uploads yet')}
               </TableCell>
             </TableRow>
           ) : (
@@ -485,31 +597,11 @@ export function CaptureLocalData() {
           )}
         </TableBody>
       </Table>
-      {uploadPageCount > 1 ? (
-        <div className='flex items-center justify-end gap-2'>
-          <Button
-            type='button'
-            size='sm'
-            variant='outline'
-            disabled={uploadPage <= 1}
-            onClick={() => setUploadPage((page) => page - 1)}
-          >
-            {t('Previous page')}
-          </Button>
-          <span className='text-muted-foreground text-xs tabular-nums'>
-            {uploadPage} / {uploadPageCount}
-          </span>
-          <Button
-            type='button'
-            size='sm'
-            variant='outline'
-            disabled={uploadPage >= uploadPageCount}
-            onClick={() => setUploadPage((page) => page + 1)}
-          >
-            {t('Next page')}
-          </Button>
-        </div>
-      ) : null}
+      <CapturePager
+        page={uploadPage}
+        total={uploads?.total ?? 0}
+        onPageChange={setUploadPage}
+      />
     </div>
   )
 }

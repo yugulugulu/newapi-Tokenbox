@@ -26,10 +26,20 @@ import { useTheme } from '@/context/theme-provider'
 import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { HomeNoticeDialog } from './components/home-notice-dialog'
 import { TokenBoxHomepage } from './components/tokenbox-homepage'
 import { useHomePageContent } from './hooks'
 
 export function Home() {
+  return (
+    <>
+      <HomePage />
+      <HomeNoticeDialog />
+    </>
+  )
+}
+
+function HomePage() {
   const { i18n, t } = useTranslation()
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const { resolvedTheme } = useTheme()
