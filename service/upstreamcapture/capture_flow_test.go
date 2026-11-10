@@ -55,7 +55,7 @@ func sendThroughCapture(t *testing.T, upstreamURL string, channelId, userId int,
 		IsStream:    isStream,
 		ChannelMeta: &relaycommon.ChannelMeta{ChannelId: channelId},
 	}
-	reqBody := `{"model":"gpt-x","stream":true,"prompt_cache_key":"conv-1","reasoning":{"effort":"high"}}`
+	reqBody := `{"model":"gpt-x","stream":true,"prompt_cache_key":"conv-1","reasoning":{"effort":"high"},"input":[{"role":"user","content":"hi"}]}`
 	req, err := http.NewRequest(http.MethodPost, upstreamURL, strings.NewReader(reqBody))
 	require.NoError(t, err)
 
@@ -71,7 +71,7 @@ func TestCaptureFlowPersistsLocalAndS3ForSelectedChannelOnly(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = io.WriteString(w, `data: {"type":"response.output_text.delta","delta":"hi"}`+"\n\n")
-		_, _ = io.WriteString(w, `data: {"type":"response.completed","response":{"id":"resp_flow","status":"completed"}}`+"\n\n")
+		_, _ = io.WriteString(w, `data: {"type":"response.completed","response":{"id":"resp_flow","status":"completed","output":[{"type":"reasoning","encrypted_content":"enc"},{"type":"function_call","name":"ls","arguments":"{}"}]}}`+"\n\n")
 	}))
 	defer upstream.Close()
 	s3 := &fakeS3{objects: map[string][]byte{}}

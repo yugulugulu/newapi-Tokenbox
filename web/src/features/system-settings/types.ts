@@ -364,6 +364,7 @@ export type OperationsSettings = {
   'perf_metrics_setting.retention_days': number
   'capture_setting.channel_ids': number[]
   'capture_setting.excluded_user_ids': number[]
+  'capture_setting.only_qualified': boolean
   'capture_setting.local_enabled': boolean
   'capture_setting.local_dir': string
   'capture_setting.s3_enabled': boolean

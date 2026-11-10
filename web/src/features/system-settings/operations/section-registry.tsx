@@ -138,6 +138,8 @@ const OPERATIONS_SECTIONS = [
             settings['capture_setting.channel_ids'],
           'capture_setting.excluded_user_ids':
             settings['capture_setting.excluded_user_ids'],
+          'capture_setting.only_qualified':
+            settings['capture_setting.only_qualified'],
           'capture_setting.local_enabled':
             settings['capture_setting.local_enabled'],
           'capture_setting.local_dir': settings['capture_setting.local_dir'],

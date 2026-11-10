@@ -85,6 +85,7 @@ const captureSchema = z.object({
   capture_setting: z
     .object({
       channel_ids: z.array(z.number().int().positive()),
+      only_qualified: z.boolean(),
       excluded_user_ids: z
         .string()
         .refine((value) => parseUserIdList(value) !== null, {
@@ -129,6 +130,7 @@ type CaptureFormValues = z.output<typeof captureSchema>
 type FlatCaptureDefaults = {
   'capture_setting.channel_ids': number[]
   'capture_setting.excluded_user_ids': number[]
+  'capture_setting.only_qualified': boolean
   'capture_setting.local_enabled': boolean
   'capture_setting.local_dir': string
   'capture_setting.s3_enabled': boolean
@@ -149,6 +151,7 @@ const buildFormDefaults = (
     excluded_user_ids: (
       defaults['capture_setting.excluded_user_ids'] ?? []
     ).join(', '),
+    only_qualified: defaults['capture_setting.only_qualified'] ?? true,
     local_enabled: defaults['capture_setting.local_enabled'],
     local_dir: defaults['capture_setting.local_dir'] ?? '',
     s3_enabled: defaults['capture_setting.s3_enabled'],
@@ -171,6 +174,7 @@ const normalizeFormValues = (
     'capture_setting.channel_ids': [...v.channel_ids].sort((a, b) => a - b),
     'capture_setting.excluded_user_ids':
       parseUserIdList(v.excluded_user_ids) ?? [],
+    'capture_setting.only_qualified': v.only_qualified,
     'capture_setting.local_enabled': v.local_enabled,
     'capture_setting.local_dir': v.local_dir.trim(),
     'capture_setting.s3_enabled': v.s3_enabled,
@@ -379,6 +383,29 @@ export function CaptureSection(props: Props) {
                 </FormDescription>
                 <FormMessage />
               </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name='capture_setting.only_qualified'
+            render={({ field }) => (
+              <SettingsSwitchItem>
+                <SettingsSwitchContent>
+                  <FormLabel>{t('Only keep qualified records')}</FormLabel>
+                  <FormDescription>
+                    {t(
+                      'Skip Chat Completions requests and drop records whose response lacks a reasoning signature or a tool call, or did not finish successfully'
+                    )}
+                  </FormDescription>
+                </SettingsSwitchContent>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </SettingsSwitchItem>
             )}
           />
 

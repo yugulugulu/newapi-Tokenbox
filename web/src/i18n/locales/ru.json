@@ -5457,6 +5457,8 @@
     "Local storage": "Локальное хранилище",
     "Write capture records as JSON files on the server disk.": "Записывает данные захвата в JSON-файлы на диск сервера.",
     "Enable local storage": "Включить локальное хранилище",
+    "Only keep qualified records": "Сохранять только подходящие записи",
+    "Skip Chat Completions requests and drop records whose response lacks a reasoning signature or a tool call, or did not finish successfully": "Пропускать запросы Chat Completions и отбрасывать записи, в ответе которых нет подписи рассуждений, нет вызова инструмента или которые не завершились успешно",
     "Local directory": "Локальный каталог",
     "Leave empty to use logs/captures": "Оставьте пустым, чтобы использовать logs/captures",
     "S3 upload": "Загрузка в S3",

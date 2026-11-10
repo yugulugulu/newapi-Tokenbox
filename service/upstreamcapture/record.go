@@ -21,6 +21,8 @@ type builtRecord struct {
 	channelId       int
 	startedAt       time.Time
 	body            []byte
+	// qualified reports whether the record passes downstream acceptance.
+	qualified bool
 }
 
 // requestHints are the request JSON fields used to derive record metadata.
@@ -35,7 +37,29 @@ type requestHints struct {
 	} `json:"client_metadata"`
 	Metadata *struct {
 		SessionId string `json:"session_id"`
+		UserId    string `json:"user_id"`
 	} `json:"metadata"`
+	Messages json.RawMessage `json:"messages"`
+	Input    json.RawMessage `json:"input"`
+}
+
+// hasConversation reports whether the request carries non-empty messages or input.
+func (h *requestHints) hasConversation() bool {
+	for _, raw := range []json.RawMessage{h.Messages, h.Input} {
+		switch common.GetJsonType(raw) {
+		case "array":
+			inner := bytes.TrimSpace(bytes.TrimSpace(raw)[1:])
+			if len(inner) > 0 && inner[0] != ']' {
+				return true
+			}
+		case "string":
+			var text string
+			if common.Unmarshal(raw, &text) == nil && strings.TrimSpace(text) != "" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // buildRecord assembles the record with the same key order as the reference format:
@@ -108,25 +132,47 @@ func buildRecord(j *job) *builtRecord {
 		channelId:       s.channelId,
 		startedAt:       s.startedAt,
 		body:            buf.Bytes(),
+		qualified:       isQualifiedRecord(hints.hasConversation(), j.statusCode, requestTruncated || responseTruncated, responseData),
 	}
 }
 
 // sessionId hashes the most specific client conversation identifier available,
 // so requests from one conversation share a session_id.
 func sessionId(s *Session, hints *requestHints) string {
-	var clientSession, metadataSession string
+	var clientSession, metadataSession, claudeSession string
 	if hints.ClientMetadata != nil {
 		clientSession = hints.ClientMetadata.SessionId
 	}
 	if hints.Metadata != nil {
 		metadataSession = hints.Metadata.SessionId
+		claudeSession = claudeCodeSessionId(hints.Metadata.UserId)
 	}
-	key := firstNonEmpty(hints.PromptCacheKey, clientSession, metadataSession, s.sessionHeader)
+	key := firstNonEmpty(hints.PromptCacheKey, clientSession, metadataSession, claudeSession, s.sessionHeader)
 	if key == "" {
 		key = "token:" + strconv.Itoa(s.tokenId) + ":user:" + strconv.Itoa(s.userId)
 	}
 	sum := sha256.Sum256([]byte(key))
 	return hex.EncodeToString(sum[:])
+}
+
+// claudeCodeSessionId extracts the conversation id Claude Code embeds in
+// metadata.user_id, either as a JSON object {"session_id": ...} or in the
+// legacy "user_<hash>_account_<uuid>_session_<uuid>" form.
+func claudeCodeSessionId(userId string) string {
+	userId = strings.TrimSpace(userId)
+	if strings.HasPrefix(userId, "{") {
+		var embedded struct {
+			SessionId string `json:"session_id"`
+		}
+		if common.UnmarshalJsonStr(userId, &embedded) != nil {
+			return ""
+		}
+		return embedded.SessionId
+	}
+	if i := strings.LastIndex(userId, "_session_"); i >= 0 {
+		return userId[i+len("_session_"):]
+	}
+	return ""
 }
 
 func isEventStream(contentType string, body []byte) bool {

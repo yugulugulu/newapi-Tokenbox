@@ -5457,6 +5457,8 @@
     "Local storage": "Lưu trữ cục bộ",
     "Write capture records as JSON files on the server disk.": "Ghi bản ghi dưới dạng tệp JSON trên ổ đĩa máy chủ.",
     "Enable local storage": "Bật lưu trữ cục bộ",
+    "Only keep qualified records": "Chỉ lưu bản ghi đạt chuẩn",
+    "Skip Chat Completions requests and drop records whose response lacks a reasoning signature or a tool call, or did not finish successfully": "Bỏ qua yêu cầu Chat Completions và loại bỏ các bản ghi có phản hồi thiếu chữ ký suy luận, thiếu lệnh gọi công cụ hoặc không hoàn tất thành công",
     "Local directory": "Thư mục cục bộ",
     "Leave empty to use logs/captures": "Để trống để dùng logs/captures",
     "S3 upload": "Tải lên S3",
