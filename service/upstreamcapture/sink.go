@@ -1,8 +1,6 @@
 package upstreamcapture
 
 import (
-	"bytes"
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,10 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-const (
-	workerCount     = 4
-	s3UploadTimeout = 60 * time.Second
-)
+const workerCount = 4
 
 var (
 	jobs         chan *job
@@ -74,32 +69,29 @@ func persist(j *job) {
 		}
 	}()
 	setting := capture_setting.GetCaptureSetting()
-	if !setting.LocalEnabled && !setting.S3Enabled {
+	if !setting.LocalEnabled {
 		return
 	}
 	rec := buildRecord(j)
 	if setting.OnlyQualified && !rec.qualified {
 		return
 	}
-	if setting.LocalEnabled {
-		if err := writeLocal(setting, rec); err != nil {
-			common.SysError("upstream capture: local write failed: " + err.Error())
-		}
-	}
-	if setting.S3Enabled {
-		if err := uploadS3(setting, rec); err != nil {
-			common.SysError("upstream capture: s3 upload failed: " + err.Error())
-		}
+	if err := writeLocal(setting, rec); err != nil {
+		common.SysError("upstream capture: local write failed: " + err.Error())
 	}
 }
 
-func recordDir(rec *builtRecord) string {
-	return filepath.Join(rec.startedAt.Format("2006-01-02"), fmt.Sprintf("channel_%d", rec.channelId))
+// recordDir groups raw records by Beijing-time day and upstream model, which is
+// exactly the unit the pack task turns into one <date>/<model>.zip. The day is
+// taken from writtenAt rather than the request start, so a request that spans
+// midnight belongs to the next day and a finished day never receives new files.
+func recordDir(rec *builtRecord, writtenAt time.Time) string {
+	return filepath.Join(rawDirName, captureDay(writtenAt), rec.model)
 }
 
 // writeLocal writes to a temp file first and renames it, so readers never see partial records.
 func writeLocal(setting *capture_setting.CaptureSetting, rec *builtRecord) error {
-	dir := filepath.Join(setting.ResolvedLocalDir(), recordDir(rec))
+	dir := filepath.Join(setting.ResolvedLocalDir(), recordDir(rec, time.Now()))
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
@@ -117,33 +109,6 @@ func writeLocal(setting *capture_setting.CaptureSetting, rec *builtRecord) error
 		return err
 	}
 	return nil
-}
-
-func uploadS3(setting *capture_setting.CaptureSetting, rec *builtRecord) error {
-	if setting.S3Bucket == "" || setting.S3Region == "" {
-		return fmt.Errorf("s3 bucket and region are required")
-	}
-	client := s3ClientFor(setting)
-	key := s3ObjectKey(setting.S3Prefix, rec)
-	ctx, cancel := context.WithTimeout(context.Background(), s3UploadTimeout)
-	defer cancel()
-	_, err := client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:        aws.String(setting.S3Bucket),
-		Key:           aws.String(key),
-		Body:          bytes.NewReader(rec.body),
-		ContentLength: aws.Int64(int64(len(rec.body))),
-		ContentType:   aws.String("application/json"),
-	})
-	return err
-}
-
-func s3ObjectKey(prefix string, rec *builtRecord) string {
-	prefix = strings.Trim(strings.TrimSpace(prefix), "/")
-	key := filepath.ToSlash(recordDir(rec)) + "/" + rec.requestId + ".json"
-	if prefix == "" {
-		return key
-	}
-	return prefix + "/" + key
 }
 
 type s3ClientKey struct {

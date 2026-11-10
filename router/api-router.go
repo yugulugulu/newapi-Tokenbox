@@ -256,6 +256,15 @@ func SetApiRouter(router *gin.Engine) {
 			customOAuthRoute.PUT("/:id", controller.UpdateCustomOAuthProvider)
 			customOAuthRoute.DELETE("/:id", controller.DeleteCustomOAuthProvider)
 		}
+		captureRoute := apiRouter.Group("/capture")
+		captureRoute.Use(middleware.RootAuth())
+		{
+			captureRoute.GET("/local/stats", controller.GetCaptureLocalStats)
+			captureRoute.POST("/local/pack", controller.CreateCapturePackTask)
+			captureRoute.POST("/local/upload", controller.CreateCaptureUploadTask)
+			captureRoute.DELETE("/local", controller.DeleteCaptureLocalData)
+			captureRoute.GET("/uploads", controller.ListCaptureUploads)
+		}
 		performanceRoute := apiRouter.Group("/performance")
 		performanceRoute.Use(middleware.RootAuth())
 		{

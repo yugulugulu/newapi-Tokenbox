@@ -67,7 +67,7 @@ func sendThroughCapture(t *testing.T, upstreamURL string, channelId, userId int,
 	require.NoError(t, resp.Body.Close())
 }
 
-func TestCaptureFlowPersistsLocalAndS3ForSelectedChannelOnly(t *testing.T) {
+func TestCaptureFlowPersistsLocallyForSelectedChannelOnly(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = io.WriteString(w, `data: {"type":"response.output_text.delta","delta":"hi"}`+"\n\n")
@@ -89,7 +89,6 @@ func TestCaptureFlowPersistsLocalAndS3ForSelectedChannelOnly(t *testing.T) {
 	setting.ExcludedUserIds = []int{66}
 	setting.LocalEnabled = true
 	setting.LocalDir = localDir
-	setting.S3Enabled = true
 	setting.S3Bucket = "bucket"
 	setting.S3Region = "ap-southeast-1"
 	setting.S3Endpoint = s3Server.URL
@@ -104,7 +103,7 @@ func TestCaptureFlowPersistsLocalAndS3ForSelectedChannelOnly(t *testing.T) {
 
 	var localFile string
 	require.Eventually(t, func() bool {
-		matches, _ := filepath.Glob(filepath.Join(localDir, "*", "channel_1", "reqselected_*.json"))
+		matches, _ := filepath.Glob(filepath.Join(localDir, rawDirName, "*", "gpt-x", "reqselected_*.json"))
 		if len(matches) == 1 {
 			localFile = matches[0]
 			return true
@@ -133,19 +132,14 @@ func TestCaptureFlowPersistsLocalAndS3ForSelectedChannelOnly(t *testing.T) {
 	assert.Equal(t, "gpt-x", rec.Request.Model)
 	assert.Equal(t, "resp_flow", rec.Response.ResponseData.Id)
 
-	date := filepath.Base(filepath.Dir(filepath.Dir(localFile)))
-	s3Path := "/bucket/cap/" + date + "/channel_1/" + rec.RequestId + ".json"
-	require.Eventually(t, func() bool {
-		_, ok := s3.get(s3Path)
-		return ok
-	}, 5*time.Second, 20*time.Millisecond)
-	uploaded, _ := s3.get(s3Path)
-	assert.Equal(t, data, uploaded)
+	day := filepath.Base(filepath.Dir(filepath.Dir(localFile)))
+	assert.Equal(t, captureDay(time.Now()), day)
 
-	// Unselected channel and excluded user leave no trace.
-	others, _ := filepath.Glob(filepath.Join(localDir, "*", "*", "*.json"))
+	// Unselected channel and excluded user leave no trace, and S3 configuration
+	// alone no longer uploads anything in real time.
+	others, _ := filepath.Glob(filepath.Join(localDir, rawDirName, "*", "*", "*.json"))
 	assert.Len(t, others, 1)
 	s3.mu.Lock()
-	assert.Len(t, s3.objects, 1)
+	assert.Empty(t, s3.objects)
 	s3.mu.Unlock()
 }

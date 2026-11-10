@@ -143,7 +143,6 @@ const OPERATIONS_SECTIONS = [
           'capture_setting.local_enabled':
             settings['capture_setting.local_enabled'],
           'capture_setting.local_dir': settings['capture_setting.local_dir'],
-          'capture_setting.s3_enabled': settings['capture_setting.s3_enabled'],
           'capture_setting.s3_bucket': settings['capture_setting.s3_bucket'],
           'capture_setting.s3_region': settings['capture_setting.s3_region'],
           'capture_setting.s3_endpoint':

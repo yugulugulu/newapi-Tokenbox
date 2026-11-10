@@ -19,11 +19,13 @@ type CaptureSetting struct {
 	// ExcludedUserIds lists users whose requests are never captured, even on captured channels.
 	ExcludedUserIds []int `json:"excluded_user_ids"`
 
+	// LocalEnabled is the master switch: records are only kept on local disk
+	// and reach S3 later through the manual pack and upload tasks.
 	LocalEnabled bool `json:"local_enabled"`
 	// LocalDir is the root directory for local capture files; empty means <log-dir>/captures.
 	LocalDir string `json:"local_dir"`
 
-	S3Enabled     bool   `json:"s3_enabled"`
+	// S3 settings are used by the manual upload task only.
 	S3Bucket      string `json:"s3_bucket"`
 	S3Region      string `json:"s3_region"`
 	S3Endpoint    string `json:"s3_endpoint"`
@@ -75,7 +77,7 @@ func RebuildFilter() {
 	next := &captureFilter{
 		channels:      make(map[int]struct{}, len(captureSetting.ChannelIds)),
 		excludedUsers: make(map[int]struct{}, len(captureSetting.ExcludedUserIds)),
-		anySink:       captureSetting.LocalEnabled || captureSetting.S3Enabled,
+		anySink:       captureSetting.LocalEnabled,
 	}
 	for _, id := range captureSetting.ChannelIds {
 		next.channels[id] = struct{}{}

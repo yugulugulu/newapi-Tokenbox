@@ -19,6 +19,11 @@ For commercial licensing, please contact support@quantumnous.com
 import { api } from '@/lib/api'
 
 import type {
+  ApiResponse,
+  CaptureLocalStats,
+  CapturePackTask,
+  CaptureUploadPage,
+  CaptureUploadTask,
   ConfirmPaymentComplianceResponse,
   FetchUpstreamRatiosRequest,
   LogCleanupTask,
@@ -102,6 +107,49 @@ export async function fetchUpstreamRatios(request: FetchUpstreamRatiosRequest) {
   const res = await api.post<UpstreamRatiosResponse>(
     '/api/ratio_sync/fetch',
     request
+  )
+  return res.data
+}
+
+export async function getCaptureLocalStats() {
+  const res = await api.get<ApiResponse<CaptureLocalStats>>(
+    '/api/capture/local/stats'
+  )
+  return res.data
+}
+
+export async function startCapturePackTask() {
+  const res = await api.post<SystemTaskResponse<CapturePackTask>>(
+    '/api/capture/local/pack'
+  )
+  return res.data
+}
+
+export async function startCaptureUploadTask() {
+  const res = await api.post<SystemTaskResponse<CaptureUploadTask>>(
+    '/api/capture/local/upload'
+  )
+  return res.data
+}
+
+export async function getCurrentCaptureTask(
+  type: 'capture_pack' | 'capture_upload'
+) {
+  const res = await api.get<
+    SystemTaskResponse<CapturePackTask | CaptureUploadTask | null>
+  >('/api/system-task/current', { params: { type } })
+  return res.data
+}
+
+export async function deleteCaptureLocalData() {
+  const res = await api.delete<ApiResponse<null>>('/api/capture/local')
+  return res.data
+}
+
+export async function getCaptureUploads(page: number, pageSize: number) {
+  const res = await api.get<ApiResponse<CaptureUploadPage>>(
+    '/api/capture/uploads',
+    { params: { p: page, page_size: pageSize } }
   )
   return res.data
 }

@@ -61,7 +61,6 @@ const defaultOperationsSettings: OperationsSettings = {
   'capture_setting.only_qualified': true,
   'capture_setting.local_enabled': false,
   'capture_setting.local_dir': '',
-  'capture_setting.s3_enabled': false,
   'capture_setting.s3_bucket': '',
   'capture_setting.s3_region': '',
   'capture_setting.s3_endpoint': '',
