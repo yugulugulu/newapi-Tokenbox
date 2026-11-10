@@ -32,6 +32,12 @@ type CaptureSetting struct {
 	// S3Secret must keep the "secret" suffix so GET /api/option hides it.
 	S3Secret string `json:"s3_secret"`
 
+	// OnlyQualified keeps only records that can pass downstream acceptance:
+	// a complete 2xx response whose assistant output carries both a reasoning
+	// signature and a tool call. Chat Completions traffic is skipped up front
+	// because that format cannot carry reasoning signatures.
+	OnlyQualified bool `json:"only_qualified"`
+
 	// MaxBodyMB caps the captured request and response body sizes separately.
 	MaxBodyMB int `json:"max_body_mb"`
 	// QueueSize bounds the number of records waiting to be persisted.
@@ -41,6 +47,7 @@ type CaptureSetting struct {
 var captureSetting = CaptureSetting{
 	ChannelIds:      []int{},
 	ExcludedUserIds: []int{},
+	OnlyQualified:   true,
 	MaxBodyMB:       32,
 	QueueSize:       1000,
 }

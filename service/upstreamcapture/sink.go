@@ -78,6 +78,9 @@ func persist(j *job) {
 		return
 	}
 	rec := buildRecord(j)
+	if setting.OnlyQualified && !rec.qualified {
+		return
+	}
 	if setting.LocalEnabled {
 		if err := writeLocal(setting, rec); err != nil {
 			common.SysError("upstream capture: local write failed: " + err.Error())

@@ -5457,6 +5457,8 @@
     "Local storage": "ローカル保存",
     "Write capture records as JSON files on the server disk.": "キャプチャ記録を JSON ファイルとしてサーバーのディスクに書き込みます。",
     "Enable local storage": "ローカル保存を有効化",
+    "Only keep qualified records": "合格レコードのみ保存",
+    "Skip Chat Completions requests and drop records whose response lacks a reasoning signature or a tool call, or did not finish successfully": "Chat Completions リクエストをスキップし、推論署名またはツール呼び出しがない、または正常に完了しなかったレスポンスのレコードを破棄します",
     "Local directory": "ローカルディレクトリ",
     "Leave empty to use logs/captures": "空欄の場合は logs/captures を使用",
     "S3 upload": "S3 アップロード",

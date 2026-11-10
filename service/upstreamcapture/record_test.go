@@ -86,6 +86,9 @@ func TestSessionIdPriority(t *testing.T) {
 		{name: "prompt_cache_key wins", request: `{"prompt_cache_key":"a","client_metadata":{"session_id":"b"}}`, header: "c", wantKey: "a"},
 		{name: "client_metadata session", request: `{"client_metadata":{"session_id":"b"}}`, header: "c", wantKey: "b"},
 		{name: "metadata session", request: `{"metadata":{"session_id":"m"}}`, header: "c", wantKey: "m"},
+		{name: "claude code json user_id", request: `{"metadata":{"user_id":"{\"device_id\":\"d\",\"account_uuid\":\"\",\"session_id\":\"s-1\"}"}}`, header: "c", wantKey: "s-1"},
+		{name: "claude code legacy user_id", request: `{"metadata":{"user_id":"user_abc_account_u1_session_s-2"}}`, header: "c", wantKey: "s-2"},
+		{name: "plain user_id is not a session", request: `{"metadata":{"user_id":"alice"}}`, header: "c", wantKey: "c"},
 		{name: "session header", request: `{}`, header: "c", wantKey: "c"},
 		{name: "token and user fallback", request: `{}`, wantKey: "token:3:user:7"},
 	}

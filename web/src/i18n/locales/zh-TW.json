@@ -5457,6 +5457,8 @@
     "Local storage": "本機儲存",
     "Write capture records as JSON files on the server disk.": "將抓取紀錄以 JSON 檔案寫入伺服器磁碟。",
     "Enable local storage": "啟用本機儲存",
+    "Only keep qualified records": "只保存合格紀錄",
+    "Skip Chat Completions requests and drop records whose response lacks a reasoning signature or a tool call, or did not finish successfully": "跳過 Chat Completions 請求，並捨棄回應缺少推理簽章、缺少工具呼叫或未成功完成的紀錄",
     "Local directory": "本機目錄",
     "Leave empty to use logs/captures": "留空則使用 logs/captures",
     "S3 upload": "S3 上傳",

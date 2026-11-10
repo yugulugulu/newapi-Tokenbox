@@ -58,6 +58,7 @@ const defaultOperationsSettings: OperationsSettings = {
   'perf_metrics_setting.retention_days': 0,
   'capture_setting.channel_ids': [],
   'capture_setting.excluded_user_ids': [],
+  'capture_setting.only_qualified': true,
   'capture_setting.local_enabled': false,
   'capture_setting.local_dir': '',
   'capture_setting.s3_enabled': false,

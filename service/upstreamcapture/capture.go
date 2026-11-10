@@ -44,8 +44,14 @@ func Begin(c *gin.Context, info *relaycommon.RelayInfo, req *http.Request) *Sess
 	if !capture_setting.ShouldCapture(info.ChannelId, info.UserId) {
 		return nil
 	}
+	setting := capture_setting.GetCaptureSetting()
+	// Chat Completions cannot carry reasoning signatures, so such records can
+	// never be qualified; skip them before copying any bytes.
+	if setting.OnlyQualified && req.URL != nil && strings.HasSuffix(req.URL.Path, "/chat/completions") {
+		return nil
+	}
 
-	maxBytes := capture_setting.GetCaptureSetting().MaxBodyBytes()
+	maxBytes := setting.MaxBodyBytes()
 	s := &Session{
 		newAPIRequestId: info.RequestId,
 		channelId:       info.ChannelId,

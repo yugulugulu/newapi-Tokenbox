@@ -5457,6 +5457,8 @@
     "Local storage": "Stockage local",
     "Write capture records as JSON files on the server disk.": "Écrit les enregistrements de capture sous forme de fichiers JSON sur le disque du serveur.",
     "Enable local storage": "Activer le stockage local",
+    "Only keep qualified records": "Conserver uniquement les enregistrements conformes",
+    "Skip Chat Completions requests and drop records whose response lacks a reasoning signature or a tool call, or did not finish successfully": "Ignorer les requêtes Chat Completions et écarter les enregistrements dont la réponse n’a pas de signature de raisonnement, pas d’appel d’outil, ou ne s’est pas terminée correctement",
     "Local directory": "Répertoire local",
     "Leave empty to use logs/captures": "Laisser vide pour utiliser logs/captures",
     "S3 upload": "Envoi vers S3",
