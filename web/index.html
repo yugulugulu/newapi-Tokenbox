@@ -1,25 +1,145 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/tokenbox-logo-48.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/tokenbox-logo-192.png" />
+    <link rel="apple-touch-icon" href="/tokenbox-apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google" content="notranslate" />
 
     <!-- Primary Meta Tags -->
-    <title>New API</title>
-    <meta name="title" content="New API" />
+    <title>TokenBox - Claude Opus 5.5、GPT 6 API 中转 | 按量计费</title>
+    <meta
+      name="title"
+      content="TokenBox - Claude Opus 5.5、GPT 6 API 中转 | 按量计费"
+    />
     <meta
       name="description"
-      content="Unified AI API gateway and admin dashboard."
+      content="TokenBox 一个接口接入 Claude Opus 5.5、GPT 6 astra、GPT image 2.6 等主流大模型，按 token 计费，支持支付宝充值，新人领 $5 额度，Claude Code、Codex 一键接入。"
+    />
+    <meta
+      name="keywords"
+      content="TokenBox,AI API,API 中转,Claude API,Claude Opus 5.5,GPT 6,GPT 6 astra,GPT image 2.6,OpenAI API,大模型 API,Claude Code,Codex"
     />
 
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TokenBox" />
+    <meta
+      property="og:title"
+      content="TokenBox - Claude Opus 5.5、GPT 6 API 中转 | 按量计费"
+    />
+    <meta
+      property="og:description"
+      content="一个接口接入 Claude Opus 5.5、GPT 6 astra、GPT image 2.6，按 token 计费，支付宝充值，新人领 $5 额度。"
+    />
+    <meta property="og:image" content="__SITE_URL__/tokenbox-logo-512.png" />
+    <meta name="twitter:card" content="summary" />
+    <!--seo-canonical-->
+
     <meta name="theme-color" content="#fff" />
+
+    <!-- Structured data: read by search engines and AI assistants -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "name": "TokenBox",
+            "url": "__SITE_URL__/",
+            "inLanguage": "zh-CN"
+          },
+          {
+            "@type": "Organization",
+            "name": "TokenBox",
+            "url": "__SITE_URL__/",
+            "logo": "__SITE_URL__/tokenbox-logo-512.png"
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "TokenBox 是什么？",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "TokenBox 是一个 AI 大模型 API 中转平台：一个接口接入 Claude Opus 5.5、GPT 6 astra、GPT image 2.6 等主流模型，按 token 计费，稳定转发。"
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "TokenBox 支持哪些模型？",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "主推 Claude Opus 5.5、GPT 6 astra 和 GPT image 2.6，同时支持 OpenAI、Claude、Gemini、DeepSeek 等主流模型，完整列表与价格可在登录后的模型价格页查看。"
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "TokenBox 怎么计费？",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "按实际 token 用量计费，无月费，用多少扣多少，控制台可实时查看用量与费用明细。"
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "新用户有免费额度吗？",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "有。注册账号后加入 TokenBox 社群，联系客服即可领取 $5 新人体验额度。"
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Claude Code 如何接入 TokenBox？",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "在 TokenBox 控制台创建 API Key，然后设置环境变量 ANTHROPIC_BASE_URL=__SITE_URL__ 和 ANTHROPIC_AUTH_TOKEN=你的 API Key，重新启动 Claude Code 即可使用 Claude Opus 5.5 等模型。"
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Codex 如何接入 TokenBox？",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "在 TokenBox 控制台创建 API Key，然后在 ~/.codex/config.toml 中添加自定义 model_provider：base_url 填 __SITE_URL__/v1，wire_api 填 responses，env_key 指向保存 API Key 的环境变量，再把 model 设为 GPT 6 astra 等模型即可。"
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "TokenBox 支持哪些充值方式？",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "支持支付宝充值。"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
     <!--umami-->
     <!--Google Analytics-->
   </head>
 
   <body>
+    <noscript>
+      <h1>TokenBox — 把所有 Token，装进一个 Box</h1>
+      <p>
+        TokenBox 是一个 AI 大模型 API 中转平台：一个接口接入 Claude Opus 5.5、GPT 6 astra、GPT
+        image 2.6 等主流模型，按 token 计费，稳定转发。
+      </p>
+      <ul>
+        <li>主推模型：Claude Opus 5.5、GPT 6 astra、GPT image 2.6</li>
+        <li>统一接口：兼容 OpenAI 与 Anthropic 接口格式，改一个地址即可接入</li>
+        <li>按量计费：按 token 用量扣费，无月费，支持支付宝充值</li>
+        <li>新人福利：加入社群联系客服领取 $5 体验额度</li>
+        <li>工具支持：Claude Code、Codex 一键接入</li>
+      </ul>
+    </noscript>
     <div id="root" translate="no" class="notranslate"></div>
   </body>
 </html>
