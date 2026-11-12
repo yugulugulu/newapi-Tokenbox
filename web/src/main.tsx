@@ -118,6 +118,9 @@ if (!rootElement) {
   try {
     if (typeof window === 'undefined' || typeof document === 'undefined') return
     const apply = (name: string) => {
+      // index.html ships an SEO title that already leads with the brand
+      // (e.g. "TokenBox - ..."); keep it so rendered crawlers see the full title.
+      if (document.title.startsWith(name)) return
       document.title = name
       const metaTitle = document.querySelector(
         'meta[name="title"]'
