@@ -2,14 +2,15 @@ package upstreamcapture
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,13 +20,17 @@ import (
 // Local layout under capture_setting.ResolvedLocalDir():
 //
 //	raw/<day>/<model>/<newapiReqId>_<reqId>.json   records still accumulating
-//	packages/<day>/<model>.zip                     one package per day and model
+//	packages/<day>/<model>.jsonl                   one package per day and model, one record per line
+//	packages/<day>/<model>.jsonl.count             number of records in the package
+//	packages/<day>/<model>.zip                     legacy compressed package (stats/delete only)
 //	<day>/channel_<id>/...                         legacy layout (uploaded in real time)
 const (
 	rawDirName      = "raw"
 	packagesDirName = "packages"
 	dayLayout       = "2006-01-02"
-	zipExt          = ".zip"
+	jsonlExt        = ".jsonl"
+	legacyZipExt    = ".zip"
+	countFileSuffix = ".count"
 )
 
 // captureZone defines the capture "day" (Beijing time). A fixed offset keeps it
@@ -81,10 +86,9 @@ type rawGroup struct {
 	day, model, dir string
 }
 
-// PackEndedDays packs every raw <day>/<model> directory of a finished day into
-// packages/<day>/<model>.zip and removes the packed raw files. A package that
-// already exists (records that finished after the day was packed) is rebuilt
-// with its previous entries plus the new files.
+// PackEndedDays appends every raw <day>/<model> directory of a finished day to
+// packages/<day>/<model>.jsonl and removes the packed raw files. Records that
+// finish after the day was packed are appended to the same package.
 func PackEndedDays(ctx context.Context, root string, now time.Time, progress func(done, total int)) (PackResult, error) {
 	var result PackResult
 	var groups []rawGroup
@@ -133,7 +137,10 @@ func PackEndedDays(ctx context.Context, root string, now time.Time, progress fun
 	return result, nil
 }
 
-// packGroup writes one package and returns how many raw records went into it.
+// packGroup appends one raw directory to its package and returns how many
+// records went into it. Packages grow to tens of GB uncompressed, so they are
+// appended in place instead of rebuilt; on any failure the package is cut back
+// to its previous size so it never ends with a partial line.
 func packGroup(root string, g rawGroup) (int, error) {
 	entries, err := os.ReadDir(g.dir)
 	if err != nil {
@@ -151,17 +158,28 @@ func packGroup(root string, g rawGroup) (int, error) {
 	// File names start with the time-ordered new-api request id.
 	sort.Strings(names)
 
-	zipPath := filepath.Join(root, packagesDirName, g.day, g.model+zipExt)
-	if err := os.MkdirAll(filepath.Dir(zipPath), 0o755); err != nil {
+	pkgPath := filepath.Join(root, packagesDirName, g.day, g.model+jsonlExt)
+	if err := os.MkdirAll(filepath.Dir(pkgPath), 0o755); err != nil {
 		return 0, err
 	}
-	tmpPath := zipPath + ".tmp"
-	if err := writePackage(tmpPath, zipPath, g.dir, names); err != nil {
-		_ = os.Remove(tmpPath)
+	out, err := os.OpenFile(pkgPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
 		return 0, err
 	}
-	if err := os.Rename(tmpPath, zipPath); err != nil {
-		_ = os.Remove(tmpPath)
+	defer out.Close()
+	info, err := out.Stat()
+	if err != nil {
+		return 0, err
+	}
+	previousSize := info.Size()
+	previousCount := readPackageCount(pkgPath)
+
+	err = appendRecords(out, g.dir, names)
+	if err == nil {
+		err = writePackageCount(pkgPath, previousCount+len(names))
+	}
+	if err != nil {
+		_ = out.Truncate(previousSize)
 		return 0, err
 	}
 	for _, name := range names {
@@ -172,62 +190,56 @@ func packGroup(root string, g rawGroup) (int, error) {
 	return len(names), nil
 }
 
-func writePackage(tmpPath, existingPath, rawDir string, names []string) error {
-	out, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	zw := zip.NewWriter(out)
-
-	existing := map[string]struct{}{}
-	if prev, err := zip.OpenReader(existingPath); err == nil {
-		defer prev.Close()
-		for _, f := range prev.File {
-			if err := zw.Copy(f); err != nil {
-				return err
-			}
-			existing[f.Name] = struct{}{}
-		}
-	} else if !errors.Is(err, fs.ErrNotExist) {
-		return err
-	}
-
+// appendRecords writes each raw record as one JSONL line. Raw newlines in valid
+// JSON can only be insignificant whitespace (newlines inside strings are
+// escaped), so replacing them with spaces keeps the record intact.
+func appendRecords(out *os.File, rawDir string, names []string) error {
 	for _, name := range names {
-		if _, dup := existing[name]; dup {
-			continue
-		}
-		if err := addPackageEntry(zw, filepath.Join(rawDir, name), name); err != nil {
+		data, err := os.ReadFile(filepath.Join(rawDir, name))
+		if err != nil {
 			return err
 		}
-	}
-	if err := zw.Close(); err != nil {
-		return err
+		data = bytes.TrimSpace(data)
+		if len(data) == 0 {
+			continue
+		}
+		data = bytes.ReplaceAll(data, []byte("\r"), []byte(" "))
+		data = bytes.ReplaceAll(data, []byte("\n"), []byte(" "))
+		if _, err := out.Write(append(data, '\n')); err != nil {
+			return err
+		}
 	}
 	return out.Sync()
 }
 
-func addPackageEntry(zw *zip.Writer, path, name string) error {
-	in, err := os.Open(path)
+func readPackageCount(pkgPath string) int {
+	data, err := os.ReadFile(pkgPath + countFileSuffix)
 	if err != nil {
+		return 0
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
+}
+
+func writePackageCount(pkgPath string, n int) error {
+	countPath := pkgPath + countFileSuffix
+	tmpPath := countPath + ".tmp"
+	if err := os.WriteFile(tmpPath, []byte(strconv.Itoa(n)), 0o644); err != nil {
 		return err
 	}
-	defer in.Close()
-	info, err := in.Stat()
-	if err != nil {
+	if err := os.Rename(tmpPath, countPath); err != nil {
+		_ = os.Remove(tmpPath)
 		return err
 	}
-	w, err := zw.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Deflate, Modified: info.ModTime()})
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(w, in)
-	return err
+	return nil
 }
 
 type localPackage struct {
-	day, model, path string
-	size, mtime      int64
+	day, model, path, ext string
+	size, mtime           int64
 }
 
 func (p localPackage) uploadKey() string {
@@ -257,7 +269,8 @@ func listPackages(root string) ([]localPackage, error) {
 			return nil, err
 		}
 		for _, f := range files {
-			if !f.Type().IsRegular() || !strings.HasSuffix(f.Name(), zipExt) {
+			ext := filepath.Ext(f.Name())
+			if !f.Type().IsRegular() || (ext != jsonlExt && ext != legacyZipExt) {
 				continue
 			}
 			info, err := f.Info()
@@ -266,8 +279,9 @@ func listPackages(root string) ([]localPackage, error) {
 			}
 			pkgs = append(pkgs, localPackage{
 				day:   day.Name(),
-				model: strings.TrimSuffix(f.Name(), zipExt),
+				model: strings.TrimSuffix(f.Name(), ext),
 				path:  filepath.Join(pkgRoot, day.Name(), f.Name()),
+				ext:   ext,
 				size:  info.Size(),
 				mtime: info.ModTime().UnixNano(),
 			})
@@ -276,8 +290,13 @@ func listPackages(root string) ([]localPackage, error) {
 	return pkgs, nil
 }
 
-func countPackageEntries(path string) int {
-	zr, err := zip.OpenReader(path)
+// countPackageRecords returns how many records a package holds: the count
+// sidecar for JSONL packages, the entry count for legacy zip packages.
+func countPackageRecords(p localPackage) int {
+	if p.ext == jsonlExt {
+		return readPackageCount(p.path)
+	}
+	zr, err := zip.OpenReader(p.path)
 	if err != nil {
 		return 0
 	}
@@ -369,18 +388,27 @@ func CollectLocalStats(root string, uploads []*model.CaptureUploadRecord) (*Loca
 	if err != nil {
 		return nil, err
 	}
+	// A day may hold both a legacy zip and a JSONL package of late records; the
+	// item is uploaded only when every one of its packages is.
 	for _, p := range pkgs {
 		it := item(p.day, p.model)
+		firstPackage := !it.Packaged
 		it.Packaged = true
-		it.PackageBytes = p.size
-		it.PackageFiles = countPackageEntries(p.path)
+		it.PackageBytes += p.size
+		it.PackageFiles += countPackageRecords(p)
 		stats.PackageCount++
 		stats.PackageBytes += p.size
-		if at, ok := uploadedAt[p.uploadKey()]; ok {
+		at, ok := uploadedAt[p.uploadKey()]
+		if !ok {
+			it.Uploaded = false
+			it.UploadedAt = 0
+			continue
+		}
+		stats.UploadedCount++
+		stats.UploadedBytes += p.size
+		if firstPackage || it.Uploaded {
 			it.Uploaded = true
-			it.UploadedAt = at
-			stats.UploadedCount++
-			stats.UploadedBytes += p.size
+			it.UploadedAt = max(it.UploadedAt, at)
 		}
 	}
 

@@ -14,7 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// capturePackHandler packs finished capture days into <day>/<model>.zip.
+// capturePackHandler packs finished capture days into <day>/<model>.jsonl.
 type capturePackHandler struct{}
 
 func (capturePackHandler) Type() string { return model.SystemTaskTypeCapturePack }

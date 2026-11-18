@@ -82,7 +82,7 @@ func persist(j *job) {
 }
 
 // recordDir groups raw records by Beijing-time day and upstream model, which is
-// exactly the unit the pack task turns into one <date>/<model>.zip. The day is
+// exactly the unit the pack task turns into one <date>/<model>.jsonl. The day is
 // taken from writtenAt rather than the request start, so a request that spans
 // midnight belongs to the next day and a finished day never receives new files.
 func recordDir(rec *builtRecord, writtenAt time.Time) string {

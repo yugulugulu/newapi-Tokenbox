@@ -27,9 +27,10 @@ type UploadResult struct {
 	Bytes     int64 `json:"bytes"`
 }
 
-// PackageObjectKey is the S3 key of a package: <prefix>/<day>/<model>.zip.
-func PackageObjectKey(prefix, day, modelName string) string {
-	key := day + "/" + modelName + zipExt
+// PackageObjectKey is the S3 key of a package: <prefix>/<day>/<model><ext>,
+// where ext is ".jsonl" (or ".zip" for legacy packages).
+func PackageObjectKey(prefix, day, modelName, ext string) string {
+	key := day + "/" + modelName + ext
 	prefix = strings.Trim(strings.TrimSpace(prefix), "/")
 	if prefix == "" {
 		return key
@@ -96,11 +97,15 @@ func uploadPackage(ctx context.Context, uploader *transfermanager.Client, settin
 		CaptureDate: p.day,
 		ModelName:   p.model,
 		S3Bucket:    setting.S3Bucket,
-		S3Key:       PackageObjectKey(setting.S3Prefix, p.day, p.model),
-		FileCount:   countPackageEntries(p.path),
+		S3Key:       PackageObjectKey(setting.S3Prefix, p.day, p.model, p.ext),
+		FileCount:   countPackageRecords(p),
 		ZipSize:     p.size,
 		ZipMtime:    p.mtime,
 		StartedAt:   started.Unix(),
+	}
+	contentType := "application/x-ndjson"
+	if p.ext == legacyZipExt {
+		contentType = "application/zip"
 	}
 	err := func() error {
 		f, err := os.Open(p.path)
@@ -112,7 +117,7 @@ func uploadPackage(ctx context.Context, uploader *transfermanager.Client, settin
 			Bucket:      aws.String(setting.S3Bucket),
 			Key:         aws.String(record.S3Key),
 			Body:        f,
-			ContentType: aws.String("application/zip"),
+			ContentType: aws.String(contentType),
 		})
 		return err
 	}()

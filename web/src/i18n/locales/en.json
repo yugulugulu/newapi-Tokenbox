@@ -5477,7 +5477,7 @@
     "S3 manual upload": "S3 manual upload",
     "Packages are uploaded to AWS S3 or an S3-compatible object storage only when you start an upload below.": "Packages are uploaded to AWS S3 or an S3-compatible object storage only when you start an upload below.",
     "Local capture data": "Local capture data",
-    "Records accumulate per Beijing-time day. Pack finished days into <day>/<model>.zip, upload the packages to S3, then delete the local backlog.": "Records accumulate per Beijing-time day. Pack finished days into <day>/<model>.zip, upload the packages to S3, then delete the local backlog.",
+    "Records accumulate per Beijing-time day. Pack finished days into <day>/<model>.jsonl (one record per line, uncompressed), upload the packages to S3, then delete the local backlog.": "Records accumulate per Beijing-time day. Pack finished days into <day>/<model>.jsonl (one record per line, uncompressed), upload the packages to S3, then delete the local backlog.",
     "Total local data": "Total local data",
     "Not yet uploaded to S3": "Not yet uploaded to S3",
     "Uploaded packages": "Uploaded packages",
