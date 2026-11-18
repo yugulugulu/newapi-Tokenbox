@@ -41,7 +41,7 @@ func Begin(c *gin.Context, info *relaycommon.RelayInfo, req *http.Request) *Sess
 	if info == nil || info.ChannelMeta == nil || info.IsChannelTest || req == nil {
 		return nil
 	}
-	if !capture_setting.ShouldCapture(info.ChannelId, info.UserId) {
+	if !capture_setting.ShouldCapture(info.ChannelId, info.UserId, info.OriginModelName, info.UpstreamModelName) {
 		return nil
 	}
 	setting := capture_setting.GetCaptureSetting()
