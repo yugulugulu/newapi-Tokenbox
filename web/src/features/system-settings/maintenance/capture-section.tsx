@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
+import { MultiSelect } from '@/components/multi-select'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -58,6 +59,8 @@ const MAX_BODY_MB_LIMIT = 1024
 const QUEUE_SIZE_LIMIT = 100000
 const CHANNEL_PAGE_SIZE = 100
 
+type CaptureChannel = UpstreamChannel & { models: string[] }
+
 /**
  * Excluded user IDs are edited as free text ("1, 2, 3") but persisted as a
  * JSON integer array. Returns null when any token is not a positive integer.
@@ -85,6 +88,7 @@ function parseUserIdList(raw: string): number[] | null {
 const captureSchema = z.object({
   capture_setting: z.object({
     channel_ids: z.array(z.number().int().positive()),
+    model_names: z.array(z.string()),
     only_qualified: z.boolean(),
     excluded_user_ids: z
       .string()
@@ -112,6 +116,7 @@ type CaptureFormValues = z.output<typeof captureSchema>
 type FlatCaptureDefaults = {
   'capture_setting.channel_ids': number[]
   'capture_setting.excluded_user_ids': number[]
+  'capture_setting.model_names': string[]
   'capture_setting.only_qualified': boolean
   'capture_setting.local_enabled': boolean
   'capture_setting.local_dir': string
@@ -132,6 +137,7 @@ const buildFormDefaults = (
     excluded_user_ids: (
       defaults['capture_setting.excluded_user_ids'] ?? []
     ).join(', '),
+    model_names: defaults['capture_setting.model_names'] ?? [],
     only_qualified: defaults['capture_setting.only_qualified'] ?? true,
     local_enabled: defaults['capture_setting.local_enabled'],
     local_dir: defaults['capture_setting.local_dir'] ?? '',
@@ -154,6 +160,9 @@ const normalizeFormValues = (
     'capture_setting.channel_ids': [...v.channel_ids].sort((a, b) => a - b),
     'capture_setting.excluded_user_ids':
       parseUserIdList(v.excluded_user_ids) ?? [],
+    'capture_setting.model_names': [
+      ...new Set(v.model_names.map((name) => name.trim()).filter(Boolean)),
+    ].sort(),
     'capture_setting.only_qualified': v.only_qualified,
     'capture_setting.local_enabled': v.local_enabled,
     'capture_setting.local_dir': v.local_dir.trim(),
@@ -167,8 +176,8 @@ const normalizeFormValues = (
   }
 }
 
-async function fetchAllChannels(): Promise<UpstreamChannel[]> {
-  const channels: UpstreamChannel[] = []
+async function fetchAllChannels(): Promise<CaptureChannel[]> {
+  const channels: CaptureChannel[] = []
   for (let page = 1; ; page++) {
     const res = await getChannels({
       p: page,
@@ -183,6 +192,10 @@ async function fetchAllChannels(): Promise<UpstreamChannel[]> {
         base_url: channel.base_url ?? '',
         status: channel.status,
         type: channel.type,
+        models: (channel.models ?? '')
+          .split(',')
+          .map((name) => name.trim())
+          .filter(Boolean),
       })
     }
     const total = res.data?.total ?? 0
@@ -277,6 +290,20 @@ export function CaptureSection(props: Props) {
   }
 
   const localEnabled = form.watch('capture_setting.local_enabled')
+  const selectedChannelIds = form.watch('capture_setting.channel_ids')
+  const selectedModelNames = form.watch('capture_setting.model_names')
+
+  // Offer the models of the captured channels, plus any configured model that
+  // no longer belongs to one of them so it can still be removed.
+  const modelOptions = useMemo(() => {
+    const selectedChannels = new Set(selectedChannelIds)
+    const names = new Set(selectedModelNames)
+    for (const channel of channels) {
+      if (!selectedChannels.has(channel.id)) continue
+      for (const name of channel.models) names.add(name)
+    }
+    return [...names].sort().map((name) => ({ label: name, value: name }))
+  }, [channels, selectedChannelIds, selectedModelNames])
 
   return (
     <SettingsSection title={t('Upstream Capture')}>
@@ -341,6 +368,31 @@ export function CaptureSection(props: Props) {
                     'Choose channels whose upstream requests and responses are captured'
                   )}
                 />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name='capture_setting.model_names'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('Captured models')}</FormLabel>
+                <FormControl>
+                  <MultiSelect
+                    options={modelOptions}
+                    selected={field.value}
+                    onChange={field.onChange}
+                    placeholder={t('All models')}
+                    allowCreate
+                  />
+                </FormControl>
+                <FormDescription>
+                  {t(
+                    'Only these models are captured on the selected channels. Leave empty to capture every model. A request matches by the requested model or the mapped upstream model.'
+                  )}
+                </FormDescription>
+                <FormMessage />
               </FormItem>
             )}
           />

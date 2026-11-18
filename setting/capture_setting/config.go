@@ -12,12 +12,21 @@ import (
 
 const ConfigName = "capture_setting"
 
+const (
+	maxModelNames   = 1000
+	maxModelNameLen = 255
+)
+
 // CaptureSetting controls upstream request/response capture for selected channels.
 type CaptureSetting struct {
 	// ChannelIds lists the channels whose upstream traffic is captured.
 	ChannelIds []int `json:"channel_ids"`
 	// ExcludedUserIds lists users whose requests are never captured, even on captured channels.
 	ExcludedUserIds []int `json:"excluded_user_ids"`
+	// ModelNames limits capture to these models on the captured channels; an
+	// empty list captures every model. A request matches when either the model
+	// the client asked for or the mapped upstream model is listed.
+	ModelNames []string `json:"model_names"`
 
 	// LocalEnabled is the master switch: records are only kept on local disk
 	// and reach S3 later through the manual pack and upload tasks.
@@ -49,6 +58,7 @@ type CaptureSetting struct {
 var captureSetting = CaptureSetting{
 	ChannelIds:      []int{},
 	ExcludedUserIds: []int{},
+	ModelNames:      []string{},
 	OnlyQualified:   true,
 	MaxBodyMB:       32,
 	QueueSize:       1000,
@@ -57,7 +67,9 @@ var captureSetting = CaptureSetting{
 type captureFilter struct {
 	channels      map[int]struct{}
 	excludedUsers map[int]struct{}
-	anySink       bool
+	// models is nil when every model is captured.
+	models  map[string]struct{}
+	anySink bool
 }
 
 var filter atomic.Pointer[captureFilter]
@@ -85,11 +97,23 @@ func RebuildFilter() {
 	for _, id := range captureSetting.ExcludedUserIds {
 		next.excludedUsers[id] = struct{}{}
 	}
+	for _, name := range captureSetting.ModelNames {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		if next.models == nil {
+			next.models = make(map[string]struct{}, len(captureSetting.ModelNames))
+		}
+		next.models[name] = struct{}{}
+	}
 	filter.Store(next)
 }
 
-// ShouldCapture reports whether traffic for this channel and user must be captured.
-func ShouldCapture(channelId int, userId int) bool {
+// ShouldCapture reports whether traffic for this channel, user and model must
+// be captured. originModel is the model the client asked for and upstreamModel
+// the one sent upstream after channel model mapping; either may be listed.
+func ShouldCapture(channelId int, userId int, originModel string, upstreamModel string) bool {
 	f := filter.Load()
 	if f == nil || !f.anySink {
 		return false
@@ -97,8 +121,17 @@ func ShouldCapture(channelId int, userId int) bool {
 	if _, ok := f.channels[channelId]; !ok {
 		return false
 	}
-	_, excluded := f.excludedUsers[userId]
-	return !excluded
+	if _, excluded := f.excludedUsers[userId]; excluded {
+		return false
+	}
+	if f.models == nil {
+		return true
+	}
+	if _, ok := f.models[originModel]; ok {
+		return true
+	}
+	_, ok := f.models[upstreamModel]
+	return ok
 }
 
 func (s *CaptureSetting) ResolvedLocalDir() string {
@@ -127,6 +160,20 @@ func ValidateOption(key string, value string) error {
 		for _, id := range ids {
 			if id <= 0 {
 				return fmt.Errorf("%s must contain positive integers only", key)
+			}
+		}
+	case "model_names":
+		var names []string
+		if err := common.UnmarshalJsonStr(value, &names); err != nil {
+			return fmt.Errorf("model_names must be a JSON array of strings")
+		}
+		if len(names) > maxModelNames {
+			return fmt.Errorf("model_names must contain at most %d models", maxModelNames)
+		}
+		for _, name := range names {
+			name = strings.TrimSpace(name)
+			if name == "" || len(name) > maxModelNameLen {
+				return fmt.Errorf("model_names must contain non-empty names of at most %d characters", maxModelNameLen)
 			}
 		}
 	case "max_body_mb":
