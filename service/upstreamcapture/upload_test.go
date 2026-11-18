@@ -84,10 +84,10 @@ func TestUploadPendingRecordsEveryAttempt(t *testing.T) {
 	assert.Equal(t, 1, result.Succeeded)
 	assert.Equal(t, 1, result.Failed)
 
-	zipBytes, err := os.ReadFile(filepath.Join(root, "packages/2026-11-05/gpt-6-sol.zip"))
+	pkgBytes, err := os.ReadFile(filepath.Join(root, "packages/2026-11-05/gpt-6-sol.jsonl"))
 	require.NoError(t, err)
 	fake.mu.Lock()
-	assert.Equal(t, zipBytes, fake.objects["/bucket/cap/2026-11-05/gpt-6-sol.zip"])
+	assert.Equal(t, pkgBytes, fake.objects["/bucket/cap/2026-11-05/gpt-6-sol.jsonl"])
 	fake.mu.Unlock()
 
 	records, total, err := model.ListCaptureUploadRecords("", 0, 10)
@@ -101,9 +101,9 @@ func TestUploadPendingRecordsEveryAttempt(t *testing.T) {
 	require.NotNil(t, ok)
 	assert.Equal(t, model.CaptureUploadStatusSuccess, ok.Status)
 	assert.Equal(t, "task-1", ok.TaskId)
-	assert.Equal(t, "cap/2026-11-05/gpt-6-sol.zip", ok.S3Key)
+	assert.Equal(t, "cap/2026-11-05/gpt-6-sol.jsonl", ok.S3Key)
 	assert.Equal(t, 1, ok.FileCount)
-	assert.Equal(t, int64(len(zipBytes)), ok.ZipSize)
+	assert.Equal(t, int64(len(pkgBytes)), ok.ZipSize)
 	failed := byModel["claude-opus-5-5"]
 	require.NotNil(t, failed)
 	assert.Equal(t, model.CaptureUploadStatusFailed, failed.Status)

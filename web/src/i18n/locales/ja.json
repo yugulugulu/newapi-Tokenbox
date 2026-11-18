@@ -5477,7 +5477,7 @@
     "S3 manual upload": "S3 手動アップロード",
     "Packages are uploaded to AWS S3 or an S3-compatible object storage only when you start an upload below.": "パッケージは、下でアップロードを開始したときにのみ AWS S3 または S3 互換ストレージへアップロードされます。",
     "Local capture data": "ローカルキャプチャデータ",
-    "Records accumulate per Beijing-time day. Pack finished days into <day>/<model>.zip, upload the packages to S3, then delete the local backlog.": "記録は北京時間の日付ごとに蓄積されます。終了した日付を <日付>/<モデル>.zip にパッケージ化し、S3 へアップロードしてからローカルの滞留データを削除してください。",
+    "Records accumulate per Beijing-time day. Pack finished days into <day>/<model>.jsonl (one record per line, uncompressed), upload the packages to S3, then delete the local backlog.": "記録は北京時間の日付ごとに蓄積されます。終了した日付を <日付>/<モデル>.jsonl にパッケージ化し、S3 へアップロードしてからローカルの滞留データを削除してください。",
     "Total local data": "ローカルデータ合計",
     "Not yet uploaded to S3": "S3 未アップロード",
     "Uploaded packages": "アップロード済みパッケージ",

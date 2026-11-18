@@ -5477,7 +5477,7 @@
     "S3 manual upload": "Tải lên S3 thủ công",
     "Packages are uploaded to AWS S3 or an S3-compatible object storage only when you start an upload below.": "Gói chỉ được tải lên AWS S3 hoặc bộ lưu trữ tương thích S3 khi bạn bắt đầu tải lên bên dưới.",
     "Local capture data": "Dữ liệu ghi lại cục bộ",
-    "Records accumulate per Beijing-time day. Pack finished days into <day>/<model>.zip, upload the packages to S3, then delete the local backlog.": "Bản ghi được tích lũy theo ngày (giờ Bắc Kinh). Đóng gói các ngày đã kết thúc thành <ngày>/<mô hình>.zip, tải gói lên S3, sau đó xóa dữ liệu tồn đọng cục bộ.",
+    "Records accumulate per Beijing-time day. Pack finished days into <day>/<model>.jsonl (one record per line, uncompressed), upload the packages to S3, then delete the local backlog.": "Bản ghi được tích lũy theo ngày (giờ Bắc Kinh). Đóng gói các ngày đã kết thúc thành <ngày>/<mô hình>.jsonl, tải gói lên S3, sau đó xóa dữ liệu tồn đọng cục bộ.",
     "Total local data": "Tổng dữ liệu cục bộ",
     "Not yet uploaded to S3": "Chưa tải lên S3",
     "Uploaded packages": "Gói đã tải lên",

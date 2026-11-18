@@ -357,7 +357,7 @@ export function CaptureLocalData() {
         <h4 className='font-medium'>{t('Local capture data')}</h4>
         <p className='text-muted-foreground mt-1 text-xs'>
           {t(
-            'Records accumulate per Beijing-time day. Pack finished days into <day>/<model>.zip, upload the packages to S3, then delete the local backlog.'
+            'Records accumulate per Beijing-time day. Pack finished days into <day>/<model>.jsonl (one record per line, uncompressed), upload the packages to S3, then delete the local backlog.'
           )}
         </p>
         {stats?.root ? (
@@ -563,7 +563,7 @@ export function CaptureLocalData() {
                   {formatTimestampToDate(record.finished_at)}
                 </TableCell>
                 <TableCell className='font-mono text-xs'>
-                  {record.capture_date}/{record.model_name}.zip
+                  {record.capture_date}/{record.s3_key.split('/').pop()}
                 </TableCell>
                 <TableCell className='text-right tabular-nums'>
                   {record.file_count}

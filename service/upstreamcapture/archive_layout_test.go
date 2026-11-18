@@ -63,6 +63,6 @@ func TestModelDirName(t *testing.T) {
 }
 
 func TestPackageObjectKey(t *testing.T) {
-	assert.Equal(t, "2026-11-10/gpt-6-sol.zip", PackageObjectKey("", "2026-11-10", "gpt-6-sol"))
-	assert.Equal(t, "captures/2026-11-10/gpt-6-sol.zip", PackageObjectKey("/captures/", "2026-11-10", "gpt-6-sol"))
+	assert.Equal(t, "2026-11-10/gpt-6-sol.jsonl", PackageObjectKey("", "2026-11-10", "gpt-6-sol", jsonlExt))
+	assert.Equal(t, "captures/2026-11-10/gpt-6-sol.jsonl", PackageObjectKey("/captures/", "2026-11-10", "gpt-6-sol", jsonlExt))
 }
