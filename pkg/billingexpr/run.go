@@ -50,9 +50,32 @@ func RunExprByHashWithRequest(exprStr, hash string, params TokenParams, request 
 
 func runProgram(prog *vm.Program, params TokenParams, request RequestInput, version int) (float64, TraceResult, error) {
 	trace := TraceResult{}
+	env := newEvalEnv(params, request, version, &trace)
+
+	out, err := expr.Run(prog, env)
+	if err != nil {
+		return 0, trace, fmt.Errorf("expr run error: %w", err)
+	}
+	f, ok := out.(float64)
+	if !ok {
+		return 0, trace, fmt.Errorf("expr result is %T, want float64", out)
+	}
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return 0, trace, fmt.Errorf("expr result must be finite")
+	}
+	if version == 2 && f < 0 {
+		return 0, trace, fmt.Errorf("v2 expr result cannot be negative")
+	}
+	return f, trace, nil
+}
+
+// newEvalEnv builds the runtime environment of one evaluation: token
+// variables, request accessors (param/header) and the trace callbacks that
+// record into trace.
+func newEvalEnv(params TokenParams, request RequestInput, version int, trace *TraceResult) map[string]interface{} {
 	headers := normalizeHeaders(request.Headers)
 
-	env := map[string]interface{}{
+	return map[string]interface{}{
 		"p":                     params.P,
 		"c":                     params.C,
 		"len":                   params.Len,
@@ -132,22 +155,6 @@ func runProgram(prog *vm.Program, params TokenParams, request RequestInput, vers
 		"ceil":    math.Ceil,
 		"floor":   math.Floor,
 	}
-
-	out, err := expr.Run(prog, env)
-	if err != nil {
-		return 0, trace, fmt.Errorf("expr run error: %w", err)
-	}
-	f, ok := out.(float64)
-	if !ok {
-		return 0, trace, fmt.Errorf("expr result is %T, want float64", out)
-	}
-	if math.IsNaN(f) || math.IsInf(f, 0) {
-		return 0, trace, fmt.Errorf("expr result must be finite")
-	}
-	if version == 2 && f < 0 {
-		return 0, trace, fmt.Errorf("v2 expr result cannot be negative")
-	}
-	return f, trace, nil
 }
 
 // RequestHasMedia reports whether top-level content contains a usable media

@@ -193,6 +193,8 @@ export interface LogOtherData {
   billing_mode?: string
   expr_b64?: string
   matched_tier?: string
+  // One entry per request-rule multiplier in the expression, in order.
+  request_rules?: Array<{ multiplier: number; matched: boolean }>
   billing_method?: 'per_second' | 'per_call' | string
   resolution?: string
   quantity?: number

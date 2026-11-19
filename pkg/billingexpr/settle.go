@@ -30,12 +30,16 @@ func ComputeTieredQuotaWithRequest(snap *BillingSnapshot, params TokenParams, re
 	quotaBeforeGroup := quotaConversion(cost, snap)
 	afterGroup, clamp := common.QuotaRoundChecked(quotaBeforeGroup * snap.GroupRatio)
 	crossed := trace.MatchedTier != snap.EstimatedTier
+	// Rule matches only explain the charge; failing to compute them must not
+	// fail settlement.
+	rules, _ := MatchRequestRules(snap.ExprString, params, request)
 
 	return TieredResult{
 		ActualQuotaBeforeGroup: quotaBeforeGroup,
 		ActualQuotaAfterGroup:  afterGroup,
 		MatchedTier:            trace.MatchedTier,
 		CrossedTier:            crossed,
+		RequestRules:           rules,
 		Clamp:                  clamp,
 	}, nil
 }
