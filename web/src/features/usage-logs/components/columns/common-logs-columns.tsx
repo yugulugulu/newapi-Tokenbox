@@ -203,6 +203,19 @@ function buildTypeDetailSegments(
         })
       }
 
+      const matchedRules = (other.request_rules ?? []).filter(
+        (rule) => rule.matched
+      )
+      if (matchedRules.length > 0) {
+        const multiplier = matchedRules.reduce(
+          (product, rule) => product * rule.multiplier,
+          1
+        )
+        segments.push({
+          text: `${t('Conditional multipliers')} ×${Number(multiplier.toFixed(4))}`,
+        })
+      }
+
       const cacheEntries = tieredSummary.priceEntries
         .filter((entry) =>
           ['cacheReadPrice', 'cacheCreatePrice', 'cacheCreate1hPrice'].includes(

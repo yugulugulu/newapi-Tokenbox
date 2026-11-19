@@ -72,6 +72,10 @@ type TieredResult struct {
 	ActualQuotaAfterGroup  int     `json:"actual_quota_after_group"`
 	MatchedTier            string  `json:"matched_tier"`
 	CrossedTier            bool    `json:"crossed_tier"`
+	// RequestRules reports which request-rule multipliers applied, in
+	// expression order, so the consume log can show them. Nil when the
+	// expression has no request rules.
+	RequestRules []RequestRuleMatch `json:"request_rules,omitempty"`
 	// Clamp records an int32 saturation event during quota conversion so the
 	// caller can surface it on the consume log for admin auditing. Nil when no
 	// clamping occurred. Not serialized: the marker is attached separately via

@@ -53,6 +53,12 @@ type DynamicPricingBreakdownProps = {
    */
   matchedTierLabel?: string | null
   /**
+   * Whether each request rule matched the request, in expression order, as
+   * recorded on the usage log. Ignored when it does not line up with the
+   * parsed rule groups.
+   */
+  requestRuleMatches?: Array<{ matched: boolean }> | null
+  /**
    * Hide cache-pricing columns regardless of the per-tier values. The log
    * details dialog passes this when the actual request did not consume any
    * cache tokens, so users only see pricing rows that were relevant to the
@@ -161,6 +167,7 @@ function describeGroup(
 export function DynamicPricingBreakdown({
   billingExpr,
   matchedTierLabel,
+  requestRuleMatches,
   hideCacheColumns = false,
   compact = false,
 }: DynamicPricingBreakdownProps) {
@@ -193,6 +200,8 @@ export function DynamicPricingBreakdown({
 
   const hasTiers = tiers.length > 0
   const hasRules = ruleGroups.length > 0
+  const ruleMatches =
+    requestRuleMatches?.length === ruleGroups.length ? requestRuleMatches : null
   const normalizedMatchedTierLabel = normalizeTierLabel(
     matchedTierLabel ?? undefined
   )
@@ -435,29 +444,54 @@ export function DynamicPricingBreakdown({
             {t('Conditional multipliers')}
           </div>
           <ul className='space-y-1.5'>
-            {ruleGroups.map((group, gi) => (
-              <li
-                // Parsed request-rule groups do not carry persistent IDs.
-                // eslint-disable-next-line react/no-array-index-key
-                key={`group-${gi}`}
-                className='bg-muted/50 flex items-center justify-between gap-3 rounded-md px-3 py-2'
-              >
-                <span
+            {ruleGroups.map((group, gi) => {
+              const matched = ruleMatches?.[gi]?.matched
+              return (
+                <li
+                  // Parsed request-rule groups do not carry persistent IDs.
+                  // eslint-disable-next-line react/no-array-index-key
+                  key={`group-${gi}`}
                   className={cn(
-                    'text-foreground break-all',
-                    compact ? 'text-xs' : 'text-sm'
+                    'bg-muted/50 flex items-center justify-between gap-3 rounded-md px-3 py-2',
+                    matched &&
+                      'bg-emerald-50/70 ring-1 ring-emerald-500/30 dark:bg-emerald-500/10'
                   )}
                 >
-                  {describeGroup(group, t)}
-                </span>
-                <Badge
-                  variant='secondary'
-                  className='shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300'
-                >
-                  {group.multiplier}x
-                </Badge>
-              </li>
-            ))}
+                  <span
+                    className={cn(
+                      'text-foreground break-all',
+                      compact ? 'text-xs' : 'text-sm'
+                    )}
+                  >
+                    {describeGroup(group, t)}
+                  </span>
+                  <span className='flex shrink-0 items-center gap-1.5'>
+                    {matched === true && (
+                      <Badge
+                        variant='secondary'
+                        className='bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
+                      >
+                        {t('Matched')}
+                      </Badge>
+                    )}
+                    {matched === false && (
+                      <Badge
+                        variant='outline'
+                        className='text-muted-foreground'
+                      >
+                        {t('Not matched')}
+                      </Badge>
+                    )}
+                    <Badge
+                      variant='secondary'
+                      className='bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300'
+                    >
+                      {group.multiplier}x
+                    </Badge>
+                  </span>
+                </li>
+              )
+            })}
           </ul>
         </div>
       )}
